@@ -47,7 +47,8 @@ int main(void)
     scanf("%d", meuid);
 
     carregaEnlaces();
-
+    dijkstra();
+    
     adjacentes[0] = *meuid;                         //usa o proprio id só pra buscar a porta no
     for(i=1; i<NODES; i++) {
         if(adjacencia[*meuid][i]){
@@ -96,7 +97,7 @@ void savePath(int dijsktra[3][NODES], int column, int start, int id){
         savePath(dijsktra, dijsktra[1][column], start, id);
 }
 
-void dijkstra(int adjacencia[NODES][NODES]){
+void dijkstra(){
     int dijkstra[3][NODES];
     
     for(int i=0; i<NODES ; i++){
