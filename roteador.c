@@ -4,6 +4,7 @@
 #include<arpa/inet.h>
 #include<sys/socket.h>
 #include <pthread.h>
+ #include <unistd.h>
 
 #define NODES 6
 int caminho[NODES][NODES];
@@ -13,8 +14,10 @@ int caminho[NODES][NODES];
 #define PORT_0 8888
 #define PORT_1 8889
 
+int searchMinor();
 void dijkstra();
 void carregaEnlaces();
+
 void *sender();
 void *receiver();
 
@@ -49,31 +52,58 @@ int main(void)
    return(1);
 }
 
+int searchMinor(int dijkstra[3][NODES]){
+    int minor = 9999, id = -1;
+    for (int j=0 ; j<NODES ; j++){
+        if (dijkstra[2][j] == 0 && dijkstra[0][j] < minor){
+            minor = dijkstra[0][j];
+            id = j;
+        }
+    }
+    return (minor == 9999) ? -1 : id;
+}
+
+void dijkstra(int adjacencia[NODES][NODES]){
+    int dijkstra[3][NODES];
+    int id = 0, custo = 0;
+
+    memset(dijkstra, 0, sizeof(dijkstra));
+    memset(dijkstra, -1, 2*NODES*sizeof(int));
+    memset(dijkstra, 9999,  NODES*sizeof(int));
+
+    dijkstra[0][id] = 0;
+    dijkstra[1][id] = 0;
+
+    while(id != -1){
+        for (int j=0 ; j<NODES ; j++){
+            dijkstra[2][id] = 1;
+            if (dijkstra[2][j] == 0 && adjacencia[id][j] != 0 && (adjacencia[id][j] + custo) < dijkstra[0][j]){
+                dijkstra[0][j] = (adjacencia[id][j] + custo);
+                dijkstra[1][j] = id;
+            }
+        }
+        id = searchMinor(dijkstra);
+        custo = dijkstra[0][id];
+    }
+}
+
 void carregaEnlaces(){
     int adjacencia[NODES][NODES];
     int rot1, rot2, custo;
- 
-    //Zerar matriz
-   for (int i=0 ; i<NODES ; i++){
-        for (int j=0 ; j<NODES ; j++)
-            adjacencia[i][j] = 0;
-   }
-    //Abre arquivo ENLACES
+
+   memset(adjacencia, 0, sizeof(adjacencia));
+
     FILE *file = fopen("enlaces.config", "r");
     if (!file)
         printf("Não foi possível abrir o arquivo de Enlaces");
 
     //Lê os 3 valores e salva na matriz
     while (fscanf(file, "%d %d %d", &rot1, &rot2, &custo) != EOF){
-        adjacencia[rot1-1][rot2-1] = custo;
-        adjacencia[rot2-1][rot1-1] = custo;
+        adjacencia[rot1][rot2] = custo;
+        adjacencia[rot2][rot1] = custo;
     }
     fclose(file);
-
-   for (int i=0 ; i<NODES ; i++){
-        for (int j=0 ; j<NODES ; j++)
-            printf("Posição: %d | %d Custo: %d\n", i, j, adjacencia[i][j]);
-   }
+    dijkstra(adjacencia);
 }
 
 void *sender() 
