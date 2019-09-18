@@ -1,26 +1,34 @@
-#include<stdio.h> //printf
-#include<string.h> //memset
-#include<stdlib.h> //exit(0);
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
-#include <pthread.h>
- #include <unistd.h>
+#include<pthread.h>
+#include<unistd.h>
 
 #define NODES 6
-int caminho[NODES][NODES];
 
 #define SERVER "127.0.0.1"
-#define BUFLEN 512  //Max length of buffer
+#define BUFLEN 100
 #define PORT_0 8888
-#define PORT_1 8889
 
 int searchMinor();
 void savePath();
 void dijkstra();
 void carregaEnlaces();
+void carregaConfigs(int adjacentes[], int n_adj);
 
 void *sender();
-void *receiver();
+void *receiver(void *porta);
+
+struct roteador
+{
+    int id;
+    int porta;
+};
+
+struct roteador *roteadores;
+int caminho[NODES][NODES], adjacencia[NODES][NODES];
 
 void die(char *s)
 {
@@ -28,28 +36,43 @@ void die(char *s)
     exit(1);
 }
 
-
 int main(void)
 {
-    pthread_t t[2];
-    int *meuid, i;
+    int *meuid, i, j, adjacentes[NODES], n_adj=1;   //n_adj começa com um porque já considera sua própria porta
     meuid = malloc(sizeof(int));
-    *meuid = 1;
-    char teste[100];
+    
+    memset(&adjacentes, 0, sizeof(int) * NODES);
 
     printf("Olá, por favor informe o meu ID: ");
     scanf("%d", meuid);
 
-    // todo: aqui vai o reconhecimento do enlaces
     carregaEnlaces();
+
+    adjacentes[0] = *meuid;                         //usa o proprio id só pra buscar a porta no
+    for(i=1; i<NODES; i++) {
+        if(adjacencia[*meuid][i]){
+            adjacentes[n_adj] = i;
+            n_adj++;
+        }
+    }
+
+    carregaConfigs(adjacentes, n_adj);
+
+    pthread_t tids[n_adj];
+
+    puts("Roteador atual e vizinhos");
+    for(int i=0; i<n_adj; i++)
+        printf("roteador:%d | porta:%d\n", roteadores[i].id, roteadores[i].porta);
+
+    // thread que escuta os roteadores
+    pthread_create(&tids[0], NULL, receiver, (void *) roteadores[0].porta);
+
+    // pthread_create(&tids[0], NULL, sender, );    
     
-    pthread_create(&t[1], NULL, sender, (void *)meuid);
-    pthread_create(&t[2], NULL, receiver, (void *)meuid);
-    
-    for(i=0; i<2; i++) {
-      pthread_join(t[i], NULL);
-      printf("Thread id %ld returned\n", t[i]);
-   }
+    // for(i=0; i<2; i++) {
+      pthread_join(tids[0], NULL);
+      // printf("Thread id %ld returned\n", t[i]);
+   //}
    return(1);
 }
 
@@ -103,14 +126,13 @@ void dijkstra(int adjacencia[NODES][NODES]){
 }
 
 void carregaEnlaces(){
-    int adjacencia[NODES][NODES];
     int rot1, rot2, custo;
 
    memset(adjacencia, 0, sizeof(adjacencia));
 
     FILE *file = fopen("enlaces.config", "r");
     if (!file)
-        printf("Não foi possível abrir o arquivo de Enlaces");
+        die("Não foi possível abrir o arquivo de Enlaces");
 
     //Lê os 3 valores e salva na matriz
     while (fscanf(file, "%d %d %d", &rot1, &rot2, &custo) != EOF){
@@ -118,7 +140,27 @@ void carregaEnlaces(){
         adjacencia[rot2][rot1] = custo;
     }
     fclose(file);
-    dijkstra(adjacencia);
+}
+
+void carregaConfigs(int adjacentes[], int n_adj)
+{
+    int id_rot, porta_rot;
+    FILE *file;
+    roteadores = malloc(sizeof(struct roteador) * n_adj);
+
+    for(int i=0; i<n_adj; i++){
+        file = fopen("roteador.config", "r");
+        if (!file)
+            die("Não foi possível abrir o arquivo de Roteadores");
+
+        while (fscanf(file, "%d %d", &id_rot, &porta_rot) != EOF){
+            if(adjacentes[i] == id_rot){
+                roteadores[i].id    =  id_rot;
+                roteadores[i].porta =  porta_rot;
+            }
+        }
+        fclose(file);
+    }
 }
 
 void *sender() 
@@ -171,12 +213,14 @@ void *sender()
     return 0;
 }
 
-void *receiver() 
+void *receiver(void *porta) 
 {
     struct sockaddr_in si_me, si_other;
      
     int s, i, slen = sizeof(si_other) , recv_len;
     char buf[BUFLEN];
+
+    printf("Escutando na porta  %d\n", (int) porta);
      
     //create a UDP socket
     if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -188,7 +232,7 @@ void *receiver()
     memset((char *) &si_me, 0, sizeof(si_me));
      
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(PORT_1);
+    si_me.sin_port = htons((int) porta);
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
      
     //bind socket to port
