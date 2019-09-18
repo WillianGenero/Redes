@@ -15,6 +15,7 @@ int caminho[NODES][NODES];
 #define PORT_1 8889
 
 int searchMinor();
+void savePath();
 void dijkstra();
 void carregaEnlaces();
 
@@ -63,27 +64,41 @@ int searchMinor(int dijkstra[3][NODES]){
     return (minor == 9999) ? -1 : id;
 }
 
+void savePath(int dijsktra[3][NODES], int column, int start, int id){
+    if (column==id)
+        caminho[id][id] = id;
+    else if (dijsktra[1][column] == id)
+        caminho[id][start] = column;
+    else
+        savePath(dijsktra, dijsktra[1][column], start, id);
+}
+
 void dijkstra(int adjacencia[NODES][NODES]){
     int dijkstra[3][NODES];
-    int id = 0, custo = 0;
+    
+    for(int i=0; i<NODES ; i++){
+        int id = i, custo = 0;
 
-    memset(dijkstra, 0, sizeof(dijkstra));
-    memset(dijkstra, -1, 2*NODES*sizeof(int));
-    memset(dijkstra, 9999,  NODES*sizeof(int));
+        memset(dijkstra, 0, sizeof(dijkstra));
+        memset(dijkstra, -1, 2*NODES*sizeof(int));
+        memset(dijkstra, 9999,  NODES*sizeof(int));
 
-    dijkstra[0][id] = 0;
-    dijkstra[1][id] = 0;
+        dijkstra[0][id] = 0;
+        dijkstra[1][id] = 0;
 
-    while(id != -1){
-        for (int j=0 ; j<NODES ; j++){
-            dijkstra[2][id] = 1;
-            if (dijkstra[2][j] == 0 && adjacencia[id][j] != 0 && (adjacencia[id][j] + custo) < dijkstra[0][j]){
-                dijkstra[0][j] = (adjacencia[id][j] + custo);
-                dijkstra[1][j] = id;
+        while(id != -1){
+            for (int j=0 ; j<NODES ; j++){
+                dijkstra[2][id] = 1;
+                if (dijkstra[2][j] == 0 && adjacencia[id][j] != 0 && (adjacencia[id][j] + custo) < dijkstra[0][j]){
+                    dijkstra[0][j] = (adjacencia[id][j] + custo);
+                    dijkstra[1][j] = id;
+                }
             }
+            id = searchMinor(dijkstra);
+            custo = dijkstra[0][id];
         }
-        id = searchMinor(dijkstra);
-        custo = dijkstra[0][id];
+        for (int k=0 ; k<NODES ; k++)
+            savePath(dijkstra, k, k, i);
     }
 }
 
