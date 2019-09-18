@@ -1,19 +1,22 @@
-#include<stdio.h> //printf
-#include<string.h> //memset
-#include<stdlib.h> //exit(0);
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
-#include <pthread.h>
+#include<pthread.h>
+#include<unistd.h>
 
 #define NODES 6
 
 #define SERVER "127.0.0.1"
-#define BUFLEN 100  //Max length of buffer
+#define BUFLEN 100
 #define PORT_0 8888
 
+int searchMinor();
 void dijkstra();
 void carregaEnlaces();
 void carregaConfigs(int adjacentes[], int n_adj);
+
 void *sender();
 void *receiver(void *porta);
 
@@ -32,10 +35,9 @@ void die(char *s)
     exit(1);
 }
 
-
 int main(void)
 {
-    int *meuid, i, j, adjacentes[NODES], n_adj=1;
+    int *meuid, i, j, adjacentes[NODES], n_adj=1;   //n_adj começa com um porque já considera sua própria porta
     meuid = malloc(sizeof(int));
     
     memset(&adjacentes, 0, sizeof(int) * NODES);
@@ -45,7 +47,7 @@ int main(void)
 
     carregaEnlaces();
 
-    adjacentes[0] = *meuid;
+    adjacentes[0] = *meuid;                         //usa o proprio id só pra buscar a porta no
     for(i=1; i<NODES; i++) {
         if(adjacencia[*meuid][i]){
             adjacentes[n_adj] = i;
@@ -73,16 +75,46 @@ int main(void)
    return(1);
 }
 
-void carregaEnlaces()
-{
+int searchMinor(int dijkstra[3][NODES]){
+    int minor = 9999, id = -1;
+    for (int j=0 ; j<NODES ; j++){
+        if (dijkstra[2][j] == 0 && dijkstra[0][j] < minor){
+            minor = dijkstra[0][j];
+            id = j;
+        }
+    }
+    return (minor == 9999) ? -1 : id;
+}
+
+void dijkstra(){
+    int dijkstra[3][NODES];
+    int id = 0, custo = 0;
+
+    memset(dijkstra, 0, sizeof(dijkstra));
+    memset(dijkstra, -1, 2*NODES*sizeof(int));
+    memset(dijkstra, 9999,  NODES*sizeof(int));
+
+    dijkstra[0][id] = 0;
+    dijkstra[1][id] = 0;
+
+    while(id != -1){
+        for (int j=0 ; j<NODES ; j++){
+            dijkstra[2][id] = 1;
+            if (dijkstra[2][j] == 0 && adjacencia[id][j] != 0 && (adjacencia[id][j] + custo) < dijkstra[0][j]){
+                dijkstra[0][j] = (adjacencia[id][j] + custo);
+                dijkstra[1][j] = id;
+            }
+        }
+        id = searchMinor(dijkstra);
+        custo = dijkstra[0][id];
+    }
+}
+
+void carregaEnlaces(){
     int rot1, rot2, custo;
- 
-    //Zerar matriz
-   for (int i=0 ; i<NODES ; i++){
-        for (int j=0 ; j<NODES ; j++)
-            adjacencia[i][j] = 0;
-   }
-    //Abre arquivo ENLACES
+
+   memset(adjacencia, 0, sizeof(adjacencia));
+
     FILE *file = fopen("enlaces.config", "r");
     if (!file)
         die("Não foi possível abrir o arquivo de Enlaces");
