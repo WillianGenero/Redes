@@ -171,7 +171,7 @@ void *sender()
  
     while(1)
     {
-        if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+        if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         {
             die("socket");
         }
@@ -267,13 +267,41 @@ void *receiver(void *porta)
         {
             die("recvfrom()");
         }
-             
+        char copy[BUFLEN];
+        strcpy(copy, buf);
+        
         id_destino = atoi(strtok(buf, "|"));
-        int id_next = caminho[roteadores[0].id][id_destino];
 
-        //print details of the client/peer and the data received
-        printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-        printf("Data: %s\n" , buf);
+        if (id_destino != roteadores[0].id){
+            int id_next = caminho[roteadores[0].id][id_destino];
+
+            for(i=1; i<n_adj; i++){
+                if (roteadores[i].id == id_next)
+                    break;
+            }
+
+            printf("route destino %d\n", id_next);
+            printf("porta destino %d\n", roteadores[i].porta);
+
+            memset((char *) &si_other, 0, sizeof(si_other));
+            si_other.sin_family = AF_INET;
+            si_other.sin_port = htons(roteadores[i].porta);
+            
+            if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
+            {
+                fprintf(stderr, "inet_aton() failed\n");
+                exit(1);
+            }
+            
+            if (sendto(s, copy, strlen(copy) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+            {
+                die("sendto()");
+            }
+        }else{
+            //print details of the client/peer and the data received
+            printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+            printf("Data: %s\n", copy);
+        }
     }
  
     close(s);
