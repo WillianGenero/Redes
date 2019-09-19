@@ -16,7 +16,7 @@ int searchMinor();
 void savePath();
 void dijkstra();
 void carregaEnlaces();
-void carregaConfigs(int adjacentes[], int n_adj);
+void carregaConfigs(int adjacentes[]);
 
 void *sender();
 void *receiver(void *porta);
@@ -29,6 +29,7 @@ struct roteador
 
 struct roteador *roteadores;
 int caminho[NODES][NODES], adjacencia[NODES][NODES];
+int n_adj=1;   //n_adj começa com um porque já considera sua própria porta
 
 void die(char *s)
 {
@@ -38,7 +39,7 @@ void die(char *s)
 
 int main(void)
 {
-    int *meuid, i, j, adjacentes[NODES], n_adj=1;   //n_adj começa com um porque já considera sua própria porta
+    int *meuid, i, j, adjacentes[NODES];
     meuid = malloc(sizeof(int));
     
     memset(&adjacentes, 0, sizeof(int) * NODES);
@@ -57,7 +58,7 @@ int main(void)
         }
     }
 
-    carregaConfigs(adjacentes, n_adj);
+    carregaConfigs(adjacentes);
 
     pthread_t tids[2];
 
@@ -66,7 +67,9 @@ int main(void)
         printf("roteador:%d | porta:%d\n", roteadores[i].id, roteadores[i].porta);
 
     pthread_create(&tids[0], NULL, receiver, (void *) &roteadores[0].porta);
+    pthread_create(&tids[1], NULL, sender, NULL);
     pthread_join(tids[0], NULL);
+    pthread_join(tids[1], NULL);
 
    return(1);
 }
@@ -137,7 +140,7 @@ void carregaEnlaces(){
     fclose(file);
 }
 
-void carregaConfigs(int adjacentes[], int n_adj)
+void carregaConfigs(int adjacentes[])
 {
     int id_rot, porta_rot;
     FILE *file;
@@ -163,37 +166,50 @@ void *sender()
     struct sockaddr_in si_other;
     int s, i, slen=sizeof(si_other);
     char buf[BUFLEN];
-    char message[BUFLEN];    
+    char message[BUFLEN];
+    int id_destino;
  
-    if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-    {
-        die("socket");
-    }
- 
-    memset((char *) &si_other, 0, sizeof(si_other));
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(PORT_0);
-     
-    if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
-    {
-        fprintf(stderr, "inet_aton() failed\n");
-        exit(1);
-    }
-
     while(1)
     {
-        printf("Enter message: ");
-        //gets(message);
-        scanf("%s",message);
+        if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+        {
+            die("socket");
+        }
+
+        printf("Enter router id:\n");
+        scanf("%d", &id_destino);
+        printf("Enter message:\n");
+        scanf("%s", message);
+
+        for(i=1; i<n_adj; i++){
+            if (roteadores[i].id == id_destino)
+                break;
+        }
+
+        if(i==n_adj){
+            puts("o roteador destino não é acessível");
+            continue;
+        }
+
+        printf("porta destino %d\n", roteadores[i].porta);
+
+        memset((char *) &si_other, 0, sizeof(si_other));
+        si_other.sin_family = AF_INET;
+        si_other.sin_port = htons(roteadores[i].porta);
+        
+        if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
+        {
+            fprintf(stderr, "inet_aton() failed\n");
+            exit(1);
+        }        
          
-        //send the message
         if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
         {
             die("sendto()");
         }
+        close(s);
     }
 
-    close(s);
     return 0;
 }
 
