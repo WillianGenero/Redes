@@ -50,7 +50,7 @@ int main(void)
     dijkstra();
     
     adjacentes[0] = *meuid;                         //usa o proprio id só pra buscar a porta no
-    for(i=1; i<NODES; i++) {
+    for(i=0; i<NODES; i++) {
         if(adjacencia[*meuid][i]){
             adjacentes[n_adj] = i;
             n_adj++;
@@ -59,21 +59,15 @@ int main(void)
 
     carregaConfigs(adjacentes, n_adj);
 
-    pthread_t tids[n_adj];
+    pthread_t tids[2];
 
-    puts("Roteador atual e vizinhos");
+    puts("Roteador atual e vizinhos:");
     for(int i=0; i<n_adj; i++)
         printf("roteador:%d | porta:%d\n", roteadores[i].id, roteadores[i].porta);
 
-    // thread que escuta os roteadores
-    pthread_create(&tids[0], NULL, receiver, (void *) roteadores[0].porta);
+    pthread_create(&tids[0], NULL, receiver, (void *) &roteadores[0].porta);
+    pthread_join(tids[0], NULL);
 
-    // pthread_create(&tids[0], NULL, sender, );    
-    
-    // for(i=0; i<2; i++) {
-      pthread_join(tids[0], NULL);
-      // printf("Thread id %ld returned\n", t[i]);
-   //}
    return(1);
 }
 
@@ -197,17 +191,6 @@ void *sender()
         {
             die("sendto()");
         }
-         
-        //receive a reply and print it
-        //clear the buffer by filling null, it might have previously received data
-        memset(buf,'\0', BUFLEN);
-        //try to receive some data, this is a blocking call
-        if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-        {
-            die("recvfrom()");
-        }
-         
-        // puts(buf);
     }
 
     close(s);
@@ -220,8 +203,9 @@ void *receiver(void *porta)
      
     int s, i, slen = sizeof(si_other) , recv_len;
     char buf[BUFLEN];
+    int port = *((int*) porta);
 
-    printf("Escutando na porta  %d\n", (int) porta);
+    printf("Escutando na porta  %d\n", port);
      
     //create a UDP socket
     if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -233,7 +217,7 @@ void *receiver(void *porta)
     memset((char *) &si_me, 0, sizeof(si_me));
      
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons((int) porta);
+    si_me.sin_port = htons(port);
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
      
     //bind socket to port
@@ -245,8 +229,6 @@ void *receiver(void *porta)
     //keep listening for data
     while(1)
     {
-        printf("Waiting for data...");
-        fflush(stdout);
         //receive a reply and print it
         //clear the buffer by filling null, it might have previously received data
         memset(buf,'\0', BUFLEN);
@@ -260,12 +242,6 @@ void *receiver(void *porta)
         //print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
         printf("Data: %s\n" , buf);
-         
-        //now reply the client with the same data
-        if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1)
-        {
-            die("sendto()");
-        }
     }
  
     close(s);
