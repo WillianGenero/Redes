@@ -166,7 +166,7 @@ void *sender()
     struct sockaddr_in si_other;
     int s, i, slen=sizeof(si_other);
     char buf[BUFLEN];
-    char message[BUFLEN];
+    char packet[BUFLEN], message[BUFLEN];
     int id_destino;
  
     while(1)
@@ -178,19 +178,30 @@ void *sender()
 
         printf("Enter router id:\n");
         scanf("%d", &id_destino);
+        
+        sprintf(packet, "%d", id_destino);
+        strcat(packet, "|");
+
         printf("Enter message:\n");
         scanf("%s", message);
+    
+        strcat(packet, message);
 
-        for(i=1; i<n_adj; i++){
-            if (roteadores[i].id == id_destino)
-                break;
-        }
-
+        /*
         if(i==n_adj){
             puts("o roteador destino não é acessível");
             continue;
         }
+        */
 
+        int id_next = caminho[roteadores[0].id][id_destino];
+
+        for(i=1; i<n_adj; i++){
+            if (roteadores[i].id == id_next)
+                break;
+        }
+
+        printf("route destino %d\n", id_next);
         printf("porta destino %d\n", roteadores[i].porta);
 
         memset((char *) &si_other, 0, sizeof(si_other));
@@ -201,9 +212,9 @@ void *sender()
         {
             fprintf(stderr, "inet_aton() failed\n");
             exit(1);
-        }        
+        }
          
-        if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+        if (sendto(s, packet, strlen(packet) , 0 , (struct sockaddr *) &si_other, slen)==-1)
         {
             die("sendto()");
         }
@@ -220,6 +231,8 @@ void *receiver(void *porta)
     int s, i, slen = sizeof(si_other) , recv_len;
     char buf[BUFLEN];
     int port = *((int*) porta);
+    char *token;
+    int id_destino = -1;
 
     printf("Escutando na porta  %d\n", port);
      
@@ -254,7 +267,10 @@ void *receiver(void *porta)
         {
             die("recvfrom()");
         }
-         
+             
+        id_destino = atoi(strtok(buf, "|"));
+        int id_next = caminho[roteadores[0].id][id_destino];
+
         //print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
         printf("Data: %s\n" , buf);
