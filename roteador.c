@@ -15,11 +15,15 @@
 int searchMinor();
 void savePath();
 void dijkstra();
-void carregaEnlaces();
-void carregaConfigs(int adjacentes[]);
 
-void *sender();
-void *receiver(void *porta);
+void loadLinks();
+void loadConfs(int adjacentes[]);
+
+void bindMySocket();
+void sendMessage(int id, char message[]);
+
+void *prompt();
+void *router(void *porta);
 
 struct roteador
 {
@@ -55,7 +59,7 @@ int main(void)
     printf("Olá, por favor informe o meu ID: ");
     scanf("%d", meuid);
 
-    carregaEnlaces();
+    loadLinks();
     dijkstra();
     
     adjacentes[0] = *meuid;                         //usa o proprio id só pra buscar a porta no
@@ -66,7 +70,7 @@ int main(void)
         }
     }
 
-    carregaConfigs(adjacentes);
+    loadConfs(adjacentes);
 
     pthread_t tids[2];
 
@@ -74,8 +78,8 @@ int main(void)
 
     bindMySocket();    
 
-    pthread_create(&tids[0], NULL, receiver, (void *) &roteadores[0].porta);
-    pthread_create(&tids[1], NULL, sender, NULL);
+    pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
+    pthread_create(&tids[1], NULL, prompt, NULL);
     pthread_join(tids[0], NULL);
     pthread_join(tids[1], NULL);
 
@@ -133,7 +137,7 @@ void dijkstra(){
     }
 }
 
-void carregaEnlaces(){
+void loadLinks(){
     int rot1, rot2, custo;
 
    memset(adjacencia, 0, sizeof(adjacencia));
@@ -150,7 +154,7 @@ void carregaEnlaces(){
     fclose(file);
 }
 
-void carregaConfigs(int adjacentes[])
+void loadConfs(int adjacentes[])
 {
     int id_rot, porta_rot;
     FILE *file;
@@ -190,7 +194,45 @@ void bindMySocket()
     }
 }
 
-void *sender() 
+// recebe a string e o id destino, encaminha a mensagem
+void sendMessage(int id, char message[])
+{
+    char packet[BUFLEN];
+    int id_next, i, slen=sizeof(si_other);
+
+    //problema aqui
+    sprintf(packet, "%d", id);
+    strcat(packet, "|");
+
+    strcat(packet, message);
+
+    id_next = caminho[roteadores[0].id][id];
+
+    for(i=1; i<n_adj; i++){
+        if (roteadores[i].id == id_next)
+            break;
+    }
+
+    printf("route destino %d\n", id_next);
+    printf("porta destino %d\n", roteadores[i].porta);
+
+    memset((char *) &si_other, 0, sizeof(si_other));
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(roteadores[i].porta);
+    
+    if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
+    {
+        fprintf(stderr, "inet_aton() failed\n");
+        exit(1);
+    }
+        
+    if (sendto(sock, packet, strlen(packet) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+    {
+        die("sendto()");
+    }
+}
+
+void *prompt() 
 {
     int i, slen=sizeof(si_other);
     char buf[BUFLEN];
@@ -202,44 +244,16 @@ void *sender()
         printf("Enter router id:\n");
         scanf("%d", &id_destino);
         
-        sprintf(packet, "%d", id_destino);
-        strcat(packet, "|");
-
         printf("Enter message:\n");
         scanf("%s", message);
-    
-        strcat(packet, message);
 
-        int id_next = caminho[roteadores[0].id][id_destino];
-
-        for(i=1; i<n_adj; i++){
-            if (roteadores[i].id == id_next)
-                break;
-        }
-
-        printf("route destino %d\n", id_next);
-        printf("porta destino %d\n", roteadores[i].porta);
-
-        memset((char *) &si_other, 0, sizeof(si_other));
-        si_other.sin_family = AF_INET;
-        si_other.sin_port = htons(roteadores[i].porta);
-        
-        if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
-        {
-            fprintf(stderr, "inet_aton() failed\n");
-            exit(1);
-        }
-         
-        if (sendto(sock, packet, strlen(packet) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-        {
-            die("sendto()");
-        }
+        sendMessage(id_destino, message);
     }
 
     return 0;
 }
 
-void *receiver(void *porta) 
+void *router(void *porta) 
 {
     int i, slen = sizeof(si_other) , recv_len;
     char buf[BUFLEN];
@@ -262,29 +276,7 @@ void *receiver(void *porta)
 
         if (id_destino != roteadores[0].id){
             int id_next = caminho[roteadores[0].id][id_destino];
-
-            for(i=1; i<n_adj; i++){
-                if (roteadores[i].id == id_next)
-                    break;
-            }
-
-            printf("route destino %d\n", id_next);
-            printf("porta destino %d\n", roteadores[i].porta);
-
-            memset((char *) &si_other, 0, sizeof(si_other));
-            si_other.sin_family = AF_INET;
-            si_other.sin_port = htons(roteadores[i].porta);
-            
-            if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
-            {
-                fprintf(stderr, "inet_aton() failed\n");
-                exit(1);
-            }
-            
-            if (sendto(sock, copy, strlen(copy) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-            {
-                die("sendto()");
-            }
+            sendMessage(id_next, copy);
         }else{
             //print details of the client/peer and the data received
             printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
