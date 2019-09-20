@@ -8,9 +8,10 @@
 
 #define NODES 6
 
-#define SERVER "127.0.0.1"
 #define BUFLEN 100
-#define PORT_0 8888
+
+#define SEND 0
+#define ROUTE 1
 
 int searchMinor();
 void savePath();
@@ -19,8 +20,8 @@ void dijkstra();
 void loadLinks();
 void loadConfs(int adjacentes[]);
 
-void bindMySocket();
-void sendMessage(int id, char message[]);
+void socketConfig();
+void sendMessage(int id, char message[], int mode);
 
 void *prompt();
 void *router(void *porta);
@@ -29,6 +30,7 @@ struct roteador
 {
     int id;
     int porta;
+    char ip[32];
 };
 
 struct roteador *roteadores;
@@ -46,7 +48,7 @@ void die(char *s)
 void printRoteadores(){
     puts("Roteador atual e vizinhos:");
     for(int i=0; i<n_adj; i++)
-        printf("roteador:%d | porta:%d\n", roteadores[i].id, roteadores[i].porta);
+        printf("roteador:%d %s:%d\n", roteadores[i].id, roteadores[i].ip, roteadores[i].porta);
 }
 
 int main(void)
@@ -74,9 +76,9 @@ int main(void)
 
     pthread_t tids[2];
 
-    // printRoteadores();
+    printRoteadores();
 
-    bindMySocket();    
+    socketConfig();    
 
     pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
     pthread_create(&tids[1], NULL, prompt, NULL);
@@ -157,6 +159,7 @@ void loadLinks(){
 void loadConfs(int adjacentes[])
 {
     int id_rot, porta_rot;
+    char ip_rot[32];
     FILE *file;
     roteadores = malloc(sizeof(struct roteador) * n_adj);
 
@@ -165,17 +168,18 @@ void loadConfs(int adjacentes[])
         if (!file)
             die("Não foi possível abrir o arquivo de Roteadores");
 
-        while (fscanf(file, "%d %d", &id_rot, &porta_rot) != EOF){
+        while (fscanf(file, "%d %d %s", &id_rot, &porta_rot, ip_rot) != EOF){
             if(adjacentes[i] == id_rot){
                 roteadores[i].id    =  id_rot;
                 roteadores[i].porta =  porta_rot;
+                strcpy(roteadores[i].ip, ip_rot);
             }
         }
         fclose(file);
     }
 }
 
-void bindMySocket()
+void socketConfig()
 {
     //create a UDP socket
     if ((sock=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -194,15 +198,15 @@ void bindMySocket()
     }
 }
 
-// recebe a string e o id destino, encaminha a mensagem
-void sendMessage(int id, char message[])
+void sendMessage(int id, char message[], int mode)
 {
     char packet[BUFLEN];
     int id_next, i, slen=sizeof(si_other);
-
-    //problema aqui
-    sprintf(packet, "%d", id);
-    strcat(packet, "|");
+    
+    if(mode == SEND){
+        sprintf(packet, "%d", id);
+        strcat(packet, "|");
+    }    
 
     strcat(packet, message);
 
@@ -220,7 +224,7 @@ void sendMessage(int id, char message[])
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(roteadores[i].porta);
     
-    if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
+    if (inet_aton(roteadores[i].ip , &si_other.sin_addr) == 0) 
     {
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
@@ -247,7 +251,7 @@ void *prompt()
         printf("Enter message:\n");
         scanf("%s", message);
 
-        sendMessage(id_destino, message);
+        sendMessage(id_destino, message, SEND);
     }
 
     return 0;
@@ -276,11 +280,14 @@ void *router(void *porta)
 
         if (id_destino != roteadores[0].id){
             int id_next = caminho[roteadores[0].id][id_destino];
-            sendMessage(id_next, copy);
+            sleep(1);
+            printf("Pacote para %d encaminhando por %d...\n", id_destino, id_next);
+            sendMessage(id_next, copy, ROUTE);            
+
         }else{
-            //print details of the client/peer and the data received
-            printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-            printf("Data: %s\n", copy);
+            sleep(1);
+            printf("Pacote recebido de %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+            printf("Mensagem: %s\n", copy);
         }
     }
  
