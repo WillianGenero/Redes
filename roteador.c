@@ -33,6 +33,12 @@ struct roteador
     char ip[32];
 };
 
+struct pacote
+{
+    int id;
+    char message[BUFLEN];
+};
+
 struct roteador *roteadores;
 int caminho[NODES][NODES], adjacencia[NODES][NODES];
 int n_adj=1;   //n_adj começa com um porque já considera sua própria porta
@@ -200,15 +206,14 @@ void socketConfig()
 
 void sendMessage(int id, char message[], int mode)
 {
-    char packet[BUFLEN];
+    // char packet[BUFLEN];
     int id_next, i, slen=sizeof(si_other);
+    struct pacote pacote;
     
-    if(mode == SEND){
-        sprintf(packet, "%d", id);
-        strcat(packet, "|");
-    }    
+    if(mode == SEND)
+        pacote.id = id;
 
-    strcat(packet, message);
+    strcpy(pacote.message, message);
 
     id_next = caminho[roteadores[0].id][id];
 
@@ -230,7 +235,7 @@ void sendMessage(int id, char message[], int mode)
         exit(1);
     }
         
-    if (sendto(sock, packet, strlen(packet) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+    if (sendto(sock, &pacote, sizeof(struct pacote) , 0 , (struct sockaddr *) &si_other, slen)==-1)
     {
         die("sendto()");
     }
@@ -263,31 +268,30 @@ void *router(void *porta)
     char buf[BUFLEN];
     char *token;
     int id_destino = -1;
+    struct pacote pacote;
 
     while(1)
     {
         memset(buf,'\0', BUFLEN);
 
         //try to receive some data, this is a blocking call
-        if ((recv_len = recvfrom(sock, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
+        if ((recv_len = recvfrom(sock, &pacote, sizeof(struct pacote), 0, (struct sockaddr *) &si_other, &slen)) == -1)
         {
             die("recvfrom()");
         }
-        char copy[BUFLEN];
-        strcpy(copy, buf);
         
-        id_destino = atoi(strtok(buf, "|"));
+        id_destino = pacote.id;
 
         if (id_destino != roteadores[0].id){
             int id_next = caminho[roteadores[0].id][id_destino];
             sleep(1);
             printf("Pacote para %d encaminhando por %d...\n", id_destino, id_next);
-            sendMessage(id_next, copy, ROUTE);            
+            sendMessage(id_next, pacote.message, ROUTE);            
 
         }else{
             sleep(1);
             printf("Pacote recebido de %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-            printf("Mensagem: %s\n", copy);
+            printf("Mensagem: %s\n", pacote.message);
         }
     }
  
