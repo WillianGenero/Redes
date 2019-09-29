@@ -13,15 +13,21 @@ $ git clone https://github.com/WillianGenero/Redes.git
 $ cd Redes
 ```
 
- **3. Execute o projeto**
+**3. Executando o projeto**
  ```sh
 $ bin/./init
 ```
 
-**4. Identifique o roteador**
-Baseado nos roteadores configurados nos arquivos enlaces.config e roteador.config digite o ID do roteador.
+**Ou se preferir compile o arquivo e execute cada roteador individualmente informando o seu id**
+ ```sh
+$ gcc roteador.c -lpthread -o nomearquivo
+```
+ ```sh
+$ ./nomearquivo
+```
+Forneça os id's baseando-se nos roteadores configurados nos arquivos enlaces.config e roteador.config.
 
-**5. Envie pacotes**
+**4. Envie pacotes**
 Em um terminal qualquer digite o ID do roteador destino e após a mensagem de até 100 dígitos que deseja enviar e confirme.
 
 ### Funcionamento

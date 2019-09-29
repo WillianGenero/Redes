@@ -41,16 +41,20 @@ void printRoteadores(){
     puts("---------------------------------");
 }
 
-int main(void)
+int main(int argc, char *argv[ ])
 {
     int *meuid, i, j, adjacentes[NODES];
     meuid = malloc(sizeof(int));
+
+    if(argc==1){
+        printf("Olá, por favor informe o meu ID:\n");
+        scanf("%d", meuid);
+    }else if(argc==2){
+        *meuid = atoi(argv[1]);
+        printf("Olá, sou o roteador %d:\n", *meuid);
+    }
     
     memset(&adjacentes, 0, sizeof(int) * NODES);
-
-    printf("Olá, por favor informe o meu ID: ");
-    scanf("%d", meuid);
-
     loadLinks();
     dijkstra();
     
