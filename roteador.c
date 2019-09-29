@@ -22,10 +22,9 @@ void *router(void *porta);
 
 struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
+pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 int caminho[NODES][NODES], adjacencia[NODES][NODES];
-int n_adj=1;
-int sock;
-int seq = 0;
+int n_adj = 1, sock, seq = 0, confirmacao = 0, tentativa = 0;
 
 void die(char *s)
 {
@@ -237,6 +236,26 @@ void *terminal()
         packet.id_font = roteadores[0].id;
 
         sendPacket(packet);
+        pthread_mutex_lock(&timerMutex);
+        tentativa = 0, confirmacao = 0;
+        pthread_mutex_unlock(&timerMutex);
+
+        while(1){
+            sleep(5);
+            pthread_mutex_lock(&timerMutex);
+        
+            if(tentativa >= 3 || confirmacao){
+                pthread_mutex_unlock(&timerMutex);
+                break;
+            }
+            else if(!confirmacao){
+                printf("Pacote %d não entregue. Tentando novamente", packet.seq);
+                tentativa += 1;
+                pthread_mutex_unlock(&timerMutex);
+                sendPacket(packet);
+            }
+        }
+        pthread_mutex_unlock(&timerMutex);
     }
 
     return 0;
@@ -286,6 +305,9 @@ void *router(void *porta)
             
         }else if(id_destino == roteadores[0].id && packet.ack == 1){
             printf("Confirmação recebida de %s:%d, mensagem #seq:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), packet.seq);
+            pthread_mutex_lock(&timerMutex);
+            confirmacao = 1;
+            pthread_mutex_unlock(&timerMutex);
         }
     }
  
