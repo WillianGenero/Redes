@@ -18,7 +18,7 @@ $ cd Redes
 $ bin/./init
 ```
 
-**Ou se preferir compile o arquivo e execute cada roteador individualmente informando o seu id**
+**Ou se preferir compile o arquivo e execute cada roteador individualmente**
  ```sh
 $ gcc roteador.c -lpthread -o nomearquivo
 ```
