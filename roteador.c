@@ -5,6 +5,7 @@
 #include<sys/socket.h>
 #include<pthread.h>
 #include<unistd.h>
+#include <stdio_ext.h>
 #include "headers/structures.h"
 
 int searchMinor();
@@ -226,9 +227,9 @@ void *terminal()
         printf("Enter router id:\n");
         scanf("%d", &packet.id_dest);
         
-        printf("Enter message:\n");
-        scanf("%s", packet.message);
-
+        printf("Enter message: ");
+        __fpurge(stdin);
+        fgets( packet.message, 100, stdin);
         
         packet.seq = ++seq;
         packet.type = DATA;
