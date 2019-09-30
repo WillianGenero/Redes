@@ -1,7 +1,7 @@
 #!/bin/bash
 
-gcc roteador.c -lpthread -o roteamento
+gcc roteador.c -lpthread -o roteador
 for i in $(seq 0 5);
   do
-  gnome-terminal -- ./roteamento $i
+  gnome-terminal --geometry=50x25 -- ./roteador $i
 done

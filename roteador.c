@@ -228,8 +228,14 @@ void *terminal()
 
     while(1)
     {
-        printf("Enter router id:\n");
-        scanf("%d", &packet.id_dest);
+        while(1){
+            printf("Enter router id:\n");
+            scanf("%d", &packet.id_dest);
+            if (packet.id_dest == roteadores[0].id)
+                printf("Não é possível enviar uma mensagem para você mesmo, tente novamente.\n");
+            else
+                break;
+        }
         
         printf("Enter message: ");
         __fpurge(stdin);

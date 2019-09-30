@@ -39,3 +39,6 @@ Em um terminal qualquer digite o ID do roteador destino e após a mensagem de at
 - Quando um roteador recebe uma mensagem, será encaminhada uma mensagem de controle contendo a confirmação de recebimento.
 - Se após N segundos o transmissor não receber a confirmação um novo pacote será encaminhado.
 - Após 3 tentativas sem recebimento de confirmação o transmissor irá desistir.
+
+### Requisitos
+Para o funcionamento ideal é necessário que o arquivo de configuração enlace esteja com os IDs linearmente dispostos iniciando por 0.
