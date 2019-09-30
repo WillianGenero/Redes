@@ -231,8 +231,8 @@ void *terminal()
         while(1){
             printf("Enter router id:\n");
             scanf("%d", &packet.id_dest);
-            if (packet.id_dest == roteadores[0].id)
-                printf("Não é possível enviar uma mensagem para você mesmo, tente novamente.\n");
+            if (packet.id_dest == roteadores[0].id || packet.id_dest < 0 || packet.id_dest > NODES)
+                printf("Destino não alcançável, tente novamente.\n");
             else
                 break;
         }
