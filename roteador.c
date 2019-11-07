@@ -8,10 +8,6 @@
 #include <stdio_ext.h>
 #include "headers/structures.h"
 
-int searchMinor();
-void savePath();
-void dijkstra();
-
 void loadLinks();
 void loadConfs(int adjacentes[]);
 void socketConfig();
@@ -27,10 +23,19 @@ pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 int caminho[NODES][NODES], adjacencia[NODES][NODES];
 int n_adj = 1, sock, seq = 0, confirmacao = 0, tentativa = 0;
 
+int nodos[NODES], qt_nodos = 0, *myvec;
+
 void die(char *s)
 {
     perror(s);
     exit(1);
+}
+
+int nodo(int id){
+    for(int i=0; i<qt_nodos; i++){
+        if(nodos[i] == id)          
+            return i;
+    }
 }
 
 void printRoteadores(){
@@ -55,10 +60,10 @@ int main(int argc, char *argv[ ])
     }
     
     memset(&adjacentes, 0, sizeof(int) * NODES);
-    loadLinks();
-    dijkstra();
-    
-    adjacentes[0] = *meuid;                         //usa o proprio id só pra buscar a porta no
+    mapeia();
+    loadLinks(*meuid);
+    /*
+    adjacentes[0] = *meuid;
     for(i=0; i<NODES; i++) {
         if(adjacencia[*meuid][i]){
             adjacentes[n_adj] = i;
@@ -80,74 +85,80 @@ int main(int argc, char *argv[ ])
     pthread_join(tids[1], NULL);
 
     close(sock);
+    */
 
    return(1);
 }
 
-int searchMinor(int dijkstra[3][NODES]){
-    int minor = 9999, id = -1;
-    for (int j=0 ; j<NODES ; j++){
-        if (dijkstra[2][j] == 0 && dijkstra[0][j] < minor){
-            minor = dijkstra[0][j];
-            id = j;
-        }
+void printaNodo(){
+    printf("nodos: ");
+    for(int i=0; i<qt_nodos; i++){
+        printf("[%d]", nodos[i]);
     }
-    return (minor == 9999) ? -1 : id;
+    puts("");
 }
 
-void savePath(int dijsktra[3][NODES], int column, int start, int id){
-    if (column==id)
-        caminho[id][id] = id;
-    else if (dijsktra[1][column] == id)
-        caminho[id][start] = column;
-    else
-        savePath(dijsktra, dijsktra[1][column], start, id);
-}
-
-void dijkstra(){
-    int dijkstra[3][NODES];
-    
-    for(int i=0; i<NODES ; i++){
-        int id = i, custo = 0;
-
-        memset(dijkstra, 0, sizeof(dijkstra));
-        memset(dijkstra, -1, 2*NODES*sizeof(int));
-        memset(dijkstra, 9999,  NODES*sizeof(int));
-
-        dijkstra[0][id] = 0;
-        dijkstra[1][id] = 0;
-
-        while(id != -1){
-            for (int j=0 ; j<NODES ; j++){
-                dijkstra[2][id] = 1;
-                if (dijkstra[2][j] == 0 && adjacencia[id][j] != 0 && (adjacencia[id][j] + custo) < dijkstra[0][j]){
-                    dijkstra[0][j] = (adjacencia[id][j] + custo);
-                    dijkstra[1][j] = id;
-                }
-            }
-            id = searchMinor(dijkstra);
-            custo = dijkstra[0][id];
-        }
-        for (int k=0 ; k<NODES ; k++)
-            savePath(dijkstra, k, k, i);
+void printaVec(){
+    printf("meu vetor: ");
+    for(int i=0; i<qt_nodos; i++){
+        printf("[%d]", myvec[i]);
     }
+    puts("");
 }
 
-void loadLinks(){
+void mapeia(){
     int rot1, rot2, custo;
-
-   memset(adjacencia, 0, sizeof(adjacencia));
+    int r1_n, r2_n;
 
     FILE *file = fopen("configs/enlaces.config", "r");
     if (!file)
         die("Não foi possível abrir o arquivo de Enlaces");
 
-    //Lê os 3 valores e salva na matriz
     while (fscanf(file, "%d %d %d", &rot1, &rot2, &custo) != EOF){
-        adjacencia[rot1][rot2] = custo;
-        adjacencia[rot2][rot1] = custo;
+        int r1_n = r2_n = 1;
+        for(int i=0; i < qt_nodos; i++){
+            if (rot1 == nodos[i]){
+                r1_n = 0;
+            } else if(rot2 == nodos[i]){
+                r2_n = 0;
+            }
+        }
+        if(r1_n){
+            nodos[qt_nodos] = rot1;
+            qt_nodos++;
+        }
+        if(r2_n){
+            nodos[qt_nodos] = rot2;
+            qt_nodos++;
+        }
+    }
+    printaNodo();
+    fclose(file);
+}
+
+void loadLinks(int myid){
+    int rot1, rot2, custo;
+    myvec = malloc(sizeof(int) * qt_nodos);
+
+    memset(myvec, -1, sizeof(int) * qt_nodos);
+
+    myvec[nodo(myid)] = 0;
+
+    FILE *file = fopen("configs/enlaces.config", "r");
+    if (!file)
+        die("Não foi possível abrir o arquivo de Enlaces");
+
+    while (fscanf(file, "%d %d %d", &rot1, &rot2, &custo) != EOF){
+        for(int i=0; i < qt_nodos; i++){
+            if(rot1 == myid){
+                myvec[nodo(rot2)] = custo;
+            }if(rot2 == myid){
+                myvec[nodo(rot1)] = custo;
+            }
+        }
     }
     fclose(file);
+    printaVec();
 }
 
 void loadConfs(int adjacentes[])
