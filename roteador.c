@@ -8,6 +8,8 @@
 #include <stdio_ext.h>
 #include "headers/structures.h"
 
+int idx(int myid);
+void mapeia();
 void loadLinks();
 void loadConfs(int adjacentes[]);
 void socketConfig();
@@ -20,10 +22,10 @@ void *router(void *porta);
 struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
-int caminho[NODES][NODES], adjacencia[NODES][NODES];
 int n_adj = 1, sock, seq = 0, confirmacao = 0, tentativa = 0;
 
 int nodos[NODES], qt_nodos = 0, *myvec;
+int *table[NODES];
 
 void die(char *s)
 {
@@ -31,7 +33,8 @@ void die(char *s)
     exit(1);
 }
 
-int nodo(int id){
+/* retorna o indice do roteador no vetor */
+int idx(int id){
     for(int i=0; i<qt_nodos; i++){
         if(nodos[i] == id)          
             return i;
@@ -59,18 +62,7 @@ int main(int argc, char *argv[ ])
         printf("Olá, sou o roteador %d:\n", *meuid);
     }
     
-    memset(&adjacentes, 0, sizeof(int) * NODES);
-    mapeia();
-    loadLinks(*meuid);
     /*
-    adjacentes[0] = *meuid;
-    for(i=0; i<NODES; i++) {
-        if(adjacencia[*meuid][i]){
-            adjacentes[n_adj] = i;
-            n_adj++;
-        }
-    }
-
     loadConfs(adjacentes);
 
     pthread_t tids[2];
@@ -104,6 +96,10 @@ void printaVec(){
         printf("[%d]", myvec[i]);
     }
     puts("");
+}
+
+void printaTable(){
+    /* fazer isso */
 }
 
 void mapeia(){
@@ -142,7 +138,7 @@ void loadLinks(int myid){
 
     memset(myvec, -1, sizeof(int) * qt_nodos);
 
-    myvec[nodo(myid)] = 0;
+    myvec[idx(myid)] = 0;
 
     FILE *file = fopen("configs/enlaces.config", "r");
     if (!file)
@@ -151,14 +147,16 @@ void loadLinks(int myid){
     while (fscanf(file, "%d %d %d", &rot1, &rot2, &custo) != EOF){
         for(int i=0; i < qt_nodos; i++){
             if(rot1 == myid){
-                myvec[nodo(rot2)] = custo;
+                myvec[idx(rot2)] = custo;
             }if(rot2 == myid){
-                myvec[nodo(rot1)] = custo;
+                myvec[idx(rot1)] = custo;
             }
         }
     }
     fclose(file);
     printaVec();
+
+    table[idx(myid)] = myvec;
 }
 
 void loadConfs(int adjacentes[])
