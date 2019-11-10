@@ -8,10 +8,14 @@
 #include <stdio_ext.h>
 #include "headers/structures.h"
 
+void printaNodo();
+void printaVec();
+void printaTable();
+
 int idx(int myid);
 void mapeia();
 void loadLinks();
-void loadConfs(int adjacentes[]);
+void loadConfs(int vizinhos[]);
 void socketConfig();
 
 void sendPacket(pacote packet);
@@ -22,10 +26,12 @@ void *router(void *porta);
 struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
-int n_adj = 1, sock, seq = 0, confirmacao = 0, tentativa = 0;
+int sock, seq = 0, confirmacao = 0, tentativa = 0;
 
 int nodos[NODES], qt_nodos = 0, *myvec;
 int *table[NODES];
+
+int vizinhos[NODES], n_viz = 1;
 
 void die(char *s)
 {
@@ -44,14 +50,25 @@ int idx(int id){
 void printRoteadores(){
     puts("---------------------------------");
     printf("| id:%d %s:%d\n| Vizinhos:\n", roteadores[0].id, roteadores[0].ip, roteadores[0].porta);
-    for(int i=1; i<n_adj; i++)
+    for(int i=1; i<n_viz; i++)
         printf("| id:%d | %s:%d\n", roteadores[i].id, roteadores[i].ip, roteadores[i].porta);
     puts("---------------------------------");
 }
 
+void adicionaVizinho(int id) {
+    for(int i=1; i< n_viz; i++){
+        // o vizinho já foi descoberto
+        if(id == vizinhos[i])
+            return;
+    }
+    vizinhos[n_viz] = id;
+    n_viz++;
+    return;
+}
+
 int main(int argc, char *argv[ ])
 {
-    int *meuid, i, j, adjacentes[NODES];
+    int *meuid;
     meuid = malloc(sizeof(int));
 
     if(argc==1){
@@ -61,10 +78,19 @@ int main(int argc, char *argv[ ])
         *meuid = atoi(argv[1]);
         printf("Olá, sou o roteador %d:\n", *meuid);
     }
-    
-    /*
-    loadConfs(adjacentes);
 
+    mapeia();
+    loadLinks(*meuid);
+    
+    printaNodo();
+    printaTable();
+    printaVizinhos();
+    
+    loadConfs(vizinhos);
+    
+    printRoteadores();
+
+    /*
     pthread_t tids[2];
 
     printRoteadores();
@@ -99,7 +125,26 @@ void printaVec(){
 }
 
 void printaTable(){
-    /* fazer isso */
+    puts("\n Tabela:");
+    for(int i = 0; i < NODES; i++){
+        if(table[i] == -1){
+            puts("N/A");
+            continue;
+        }
+        for(int j = 0; j < NODES; j++){
+            printf("[%d]", table[i][j]);            
+        }
+        puts("");
+    }
+    puts("");
+}
+
+void printaVizinhos(){
+    printf("Vizinhos: ");
+    for (int i = 0; i < n_viz; i++){
+        printf("[%d]", vizinhos[i]);
+    }
+    puts("");
 }
 
 void mapeia(){
@@ -128,7 +173,6 @@ void mapeia(){
             qt_nodos++;
         }
     }
-    printaNodo();
     fclose(file);
 }
 
@@ -144,35 +188,39 @@ void loadLinks(int myid){
     if (!file)
         die("Não foi possível abrir o arquivo de Enlaces");
 
+    vizinhos[0] = myid;
+
     while (fscanf(file, "%d %d %d", &rot1, &rot2, &custo) != EOF){
         for(int i=0; i < qt_nodos; i++){
             if(rot1 == myid){
                 myvec[idx(rot2)] = custo;
+                adicionaVizinho(rot2);                
             }if(rot2 == myid){
                 myvec[idx(rot1)] = custo;
+                adicionaVizinho(rot1);
             }
         }
     }
     fclose(file);
-    printaVec();
 
+    memset(table, -1, sizeof(int*) * qt_nodos);
     table[idx(myid)] = myvec;
 }
 
-void loadConfs(int adjacentes[])
+void loadConfs(int vizinhos[])
 {
     int id_rot, porta_rot;
     char ip_rot[32];
     FILE *file;
-    roteadores = malloc(sizeof(struct roteador) * n_adj);
+    roteadores = malloc(sizeof(struct roteador) * n_viz);
 
-    for(int i=0; i<n_adj; i++){
+    for(int i=0; i<n_viz; i++){
         file = fopen("configs/roteador.config", "r");
         if (!file)
             die("Não foi possível abrir o arquivo de Roteadores");
 
         while (fscanf(file, "%d %d %s", &id_rot, &porta_rot, ip_rot) != EOF){
-            if(adjacentes[i] == id_rot){
+            if(vizinhos[i] == id_rot){
                 roteadores[i].id    =  id_rot;
                 roteadores[i].porta =  porta_rot;
                 strcpy(roteadores[i].ip, ip_rot);
@@ -205,9 +253,9 @@ void sendPacket(pacote packet)
 {
     int id_next, i, slen=sizeof(si_other);
 
-    id_next = caminho[roteadores[0].id][packet.id_dest];
+    // id_next = caminho[roteadores[0].id][packet.id_dest];
 
-    for(i=1; i<n_adj; i++){
+    for(i=1; i<n_viz; i++){
         if (roteadores[i].id == id_next)
             break;
     }
@@ -299,7 +347,7 @@ void *router(void *porta)
 
         sleep(1);
         if (id_destino != roteadores[0].id){
-            int id_next = caminho[roteadores[0].id][id_destino];
+            // int id_next = caminho[roteadores[0].id][id_destino];
             
             if(packet.type == DATA){
                 printf("Roteador %d encaminhando mensagem com # sequência %d para o destino %d\n", roteadores[0].id, packet.seq, packet.id_dest);

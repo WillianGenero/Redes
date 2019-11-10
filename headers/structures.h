@@ -20,4 +20,5 @@ typedef struct pacote
     char message[150];
     int type;
     int ack;
+    int myvec[NODES];
 } pacote;
