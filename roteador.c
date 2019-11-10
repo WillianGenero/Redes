@@ -11,6 +11,7 @@
 void printaNodo();
 void printaVec();
 void printaTable();
+void printaVizinhos();
 
 int idx(int myid);
 void mapeia();
