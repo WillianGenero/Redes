@@ -67,9 +67,11 @@ void adicionaVizinho(int id) {
     return;
 }
 
+int *meuid;
+
+
 int main(int argc, char *argv[ ])
 {
-    int *meuid;
     meuid = malloc(sizeof(int));
 
     if(argc==1){
@@ -91,12 +93,15 @@ int main(int argc, char *argv[ ])
     
     printRoteadores();
 
-    /*
+   
     pthread_t tids[2];
 
-    printRoteadores();
+    socketConfig();
 
-    socketConfig();    
+    sleep(2);
+
+    if(*meuid == 6)
+        sendMyVec();
 
     pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
     pthread_create(&tids[1], NULL, terminal, NULL);
@@ -104,8 +109,6 @@ int main(int argc, char *argv[ ])
     pthread_join(tids[1], NULL);
 
     close(sock);
-    */
-
    return(1);
 }
 
@@ -250,11 +253,24 @@ void socketConfig()
     }
 }
 
+void sendMyVec() 
+{
+    pacote vec_packet;
+    vec_packet.id_dest = 18;
+    vec_packet.id_font = *meuid;
+    // nao sei se funciona
+    strncpy(vec_packet.myvec, myvec, NODES);
+    vec_packet.type = CONTROL;
+    vec_packet.ack = 0;
+
+    sendPacket(vec_packet);
+}
+
 void sendPacket(pacote packet)
 {
     int id_next, i, slen=sizeof(si_other);
 
-    // id_next = caminho[roteadores[0].id][packet.id_dest];
+    id_next = packet.id_dest;
 
     for(i=1; i<n_viz; i++){
         if (roteadores[i].id == id_next)
@@ -289,7 +305,7 @@ void *terminal()
         while(1){
             printf("Enter router id:\n");
             scanf("%d", &packet.id_dest);
-            if (packet.id_dest == roteadores[0].id || packet.id_dest < 0 || packet.id_dest > NODES)
+            if (packet.id_dest == roteadores[0].id)
                 printf("Destino não alcançável, tente novamente.\n");
             else
                 break;
@@ -377,7 +393,10 @@ void *router(void *porta)
             pthread_mutex_lock(&timerMutex);
             confirmacao = 1;
             pthread_mutex_unlock(&timerMutex);
+        }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
+            puts("vetor recebido");
         }
+                
     }
  
     return 0;
