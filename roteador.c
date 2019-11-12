@@ -29,7 +29,7 @@ struct sockaddr_in si_me, si_other;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 int sock, seq = 0, confirmacao = 0, tentativa = 0;
 
-int nodos[NODES], qt_nodos = 0, *myvec;
+int nodos[NODES], saida[NODES], qt_nodos = 0, *myvec;
 int *table[NODES];
 
 int vizinhos[NODES], n_viz = 1;
@@ -100,7 +100,6 @@ int main(int argc, char *argv[ ])
 
     sleep(2);
 
-   // if(*meuid == 6)
     sendMyVec();
 
     pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
@@ -185,6 +184,7 @@ void loadLinks(int myid){
     myvec = malloc(sizeof(int) * qt_nodos);
 
     memset(myvec, -1, sizeof(int) * qt_nodos);
+    memset(saida, -1, sizeof(int) * NODES);
 
     myvec[idx(myid)] = 0;
 
@@ -256,14 +256,16 @@ void socketConfig()
 void sendMyVec()
 {
     pacote vec_packet;
-    for (int i = 1; i < n_viz; i++){
-        vec_packet.id_dest = vizinhos[i];
+    
         vec_packet.id_font = *meuid;
+    vec_packet.type = CONTROL;
+    vec_packet.ack = 0;    
+    
         for (int i=0 ; i<qt_nodos ; i++)
             vec_packet.myvec[i] = myvec[i];
-        vec_packet.type = CONTROL;
-        vec_packet.ack = 0;
 
+    for (int i = 1; i < n_viz; i++){
+        vec_packet.id_dest = vizinhos[i];
         sendPacket(vec_packet);
     }
 }
