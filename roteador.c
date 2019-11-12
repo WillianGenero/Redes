@@ -87,7 +87,7 @@ int main(int argc, char *argv[ ])
 
     printaNodo();
     printaTable();
-    printaVizinhos();
+    // printaVizinhos();
 
     loadConfs(vizinhos);
 
@@ -262,7 +262,7 @@ void sendMyVec()
     vec_packet.ack = 0;    
     
         for (int i=0 ; i<qt_nodos ; i++)
-            vec_packet.myvec[i] = myvec[i];
+            vec_packet.sendervec[i] = myvec[i];
 
     for (int i = 1; i < n_viz; i++){
         vec_packet.id_dest = vizinhos[i];
@@ -344,7 +344,7 @@ void *terminal()
                 sendPacket(packet);
             }
         }
-        pthread_mutex_unlock(&timerMutex);
+        pthread_mutex_unlock(&timerMutex);table[idx(meuid)] = myvec;
     }
 
     return 0;
@@ -399,7 +399,7 @@ void *router(void *porta)
             pthread_mutex_unlock(&timerMutex);
         }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
             printf("Vetor distância de: %d -> ", packet.id_font);
-            printaVec(packet.myvec);
+            printaVec(packet.sendervec);
             updateTable(packet);
         }
     }
@@ -407,5 +407,21 @@ void *router(void *porta)
 }
 void updateTable(pacote packet)
 {
-    puts("Atualizar tabela de roteamento");
+    int custo_font = myvec[idx(packet.id_font)];
+    
+    for(int i=0; i<NODES; i++){
+        if(packet.sendervec[i] == -1)
+            continue;
+
+        int novocusto = (packet.sendervec[i] + custo_font);
+
+        if(( novocusto < myvec[i]) || myvec[i] == -1){
+           myvec[i] = novocusto;
+           saida[i] = idx(packet.id_font);
+        }
+    }
+    table[idx(meuid)] = myvec;
+    // falta copiar este carinha abaixo
+    table[idx(packet.id_font)] = packet.sendervec;    
+    printaTable();
 }
