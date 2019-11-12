@@ -20,7 +20,7 @@ void loadConfs(int vizinhos[]);
 void socketConfig();
 void sendMyVec();
 void sendPacket(pacote packet);
-
+void updateTable(pacote packet);
 void *terminal();
 void *router(void *porta);
 
@@ -100,8 +100,8 @@ int main(int argc, char *argv[ ])
 
     sleep(2);
 
-    if(*meuid == 6)
-        sendMyVec();
+   // if(*meuid == 6)
+    sendMyVec();
 
     pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
     pthread_create(&tids[1], NULL, terminal, NULL);
@@ -109,7 +109,7 @@ int main(int argc, char *argv[ ])
     pthread_join(tids[1], NULL);
 
     close(sock);
-   return(1);
+    return(1);
 }
 
 void printaNodo(){
@@ -120,10 +120,10 @@ void printaNodo(){
     puts("");
 }
 
-void printaVec(){
+void printaVec(int *vec){
     //printf("meu vetor: ");
     for(int i=0; i<qt_nodos; i++){
-        printf("[%d]", myvec[i]);
+        printf("[%d]", vec[i]);
     }
     puts("");
 }
@@ -145,7 +145,7 @@ void printaTable(){
 
 void printaVizinhos(){
     printf("Vizinhos: ");
-    for (int i = 0; i < n_viz; i++){
+    for (int i = 1; i < n_viz; i++){
         printf("[%d]", vizinhos[i]);
     }
     puts("");
@@ -256,14 +256,16 @@ void socketConfig()
 void sendMyVec()
 {
     pacote vec_packet;
-    vec_packet.id_dest = 18;
-    vec_packet.id_font = *meuid;
-    // nao sei se funciona
-    memcpy(vec_packet.myvec, myvec, NODES);
-    vec_packet.type = CONTROL;
-    vec_packet.ack = 0;
+    for (int i = 1; i < n_viz; i++){
+        vec_packet.id_dest = vizinhos[i];
+        vec_packet.id_font = *meuid;
+        for (int i=0 ; i<qt_nodos ; i++)
+            vec_packet.myvec[i] = myvec[i];
+        vec_packet.type = CONTROL;
+        vec_packet.ack = 0;
 
-    sendPacket(vec_packet);
+        sendPacket(vec_packet);
+    }
 }
 
 void sendPacket(pacote packet)
@@ -396,8 +398,12 @@ void *router(void *porta)
         }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
             printf("Vetor distância de: %d -> ", packet.id_font);
             printaVec(packet.myvec);
+            updateTable(packet);
         }
     }
-
     return 0;
+}
+void updateTable(pacote packet)
+{
+    puts("Atualizar tabela de roteamento");
 }
