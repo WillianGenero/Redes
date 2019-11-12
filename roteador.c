@@ -18,7 +18,7 @@ void mapeia();
 void loadLinks();
 void loadConfs(int vizinhos[]);
 void socketConfig();
-
+void sendMyVec();
 void sendPacket(pacote packet);
 
 void *terminal();
@@ -43,7 +43,7 @@ void die(char *s)
 /* retorna o indice do roteador no vetor */
 int idx(int id){
     for(int i=0; i<qt_nodos; i++){
-        if(nodos[i] == id)          
+        if(nodos[i] == id)
             return i;
     }
 }
@@ -84,16 +84,16 @@ int main(int argc, char *argv[ ])
 
     mapeia();
     loadLinks(*meuid);
-    
+
     printaNodo();
     printaTable();
     printaVizinhos();
-    
+
     loadConfs(vizinhos);
-    
+
     printRoteadores();
 
-   
+
     pthread_t tids[2];
 
     socketConfig();
@@ -121,7 +121,7 @@ void printaNodo(){
 }
 
 void printaVec(){
-    printf("meu vetor: ");
+    //printf("meu vetor: ");
     for(int i=0; i<qt_nodos; i++){
         printf("[%d]", myvec[i]);
     }
@@ -136,7 +136,7 @@ void printaTable(){
             continue;
         }
         for(int j = 0; j < NODES; j++){
-            printf("[%d]", table[i][j]);            
+            printf("[%d]", table[i][j]);
         }
         puts("");
     }
@@ -198,7 +198,7 @@ void loadLinks(int myid){
         for(int i=0; i < qt_nodos; i++){
             if(rot1 == myid){
                 myvec[idx(rot2)] = custo;
-                adicionaVizinho(rot2);                
+                adicionaVizinho(rot2);
             }if(rot2 == myid){
                 myvec[idx(rot1)] = custo;
                 adicionaVizinho(rot1);
@@ -246,20 +246,20 @@ void socketConfig()
     si_me.sin_family = AF_INET;
     si_me.sin_port = htons(roteadores[0].porta);
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-     
+
     if( bind(sock , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1)
     {
         die("bind");
     }
 }
 
-void sendMyVec() 
+void sendMyVec()
 {
     pacote vec_packet;
     vec_packet.id_dest = 18;
     vec_packet.id_font = *meuid;
     // nao sei se funciona
-    strncpy(vec_packet.myvec, myvec, NODES);
+    memcpy(vec_packet.myvec, myvec, NODES);
     vec_packet.type = CONTROL;
     vec_packet.ack = 0;
 
@@ -282,20 +282,20 @@ void sendPacket(pacote packet)
     memset((char *) &si_other, 0, sizeof(si_other));
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(roteadores[i].porta);
-    
-    if (inet_aton(roteadores[i].ip , &si_other.sin_addr) == 0) 
+
+    if (inet_aton(roteadores[i].ip , &si_other.sin_addr) == 0)
     {
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
-        
+
     if (sendto(sock, &packet, sizeof(struct pacote) , 0 , (struct sockaddr *) &si_other, slen)==-1)
     {
         die("sendto()");
     }
 }
 
-void *terminal() 
+void *terminal()
 {
     int i, slen=sizeof(si_other);
     pacote packet;
@@ -310,11 +310,11 @@ void *terminal()
             else
                 break;
         }
-        
+
         printf("Enter message: ");
         __fpurge(stdin);
         fgets( packet.message, 100, stdin);
-        
+
         packet.seq = ++seq;
         packet.type = DATA;
         packet.ack = 0;
@@ -328,7 +328,7 @@ void *terminal()
         while(1){
             sleep(5);
             pthread_mutex_lock(&timerMutex);
-        
+
             if(tentativa >= 3 || confirmacao){
                 pthread_mutex_unlock(&timerMutex);
                 break;
@@ -346,7 +346,7 @@ void *terminal()
     return 0;
 }
 
-void *router(void *porta) 
+void *router(void *porta)
 {
     int i, slen = sizeof(si_other) , recv_len;
     int id_destino = -1;
@@ -359,13 +359,13 @@ void *router(void *porta)
         {
             die("recvfrom()");
         }
-        
+
         id_destino = packet.id_dest;
 
         sleep(1);
         if (id_destino != roteadores[0].id){
             // int id_next = caminho[roteadores[0].id][id_destino];
-            
+
             if(packet.type == DATA){
                 printf("Roteador %d encaminhando mensagem com # sequência %d para o destino %d\n", roteadores[0].id, packet.seq, packet.id_dest);
             }else if (packet.type == CONTROL && packet.ack == 1){
@@ -385,19 +385,19 @@ void *router(void *porta)
             printf("Mensagem: %s\n", packet.message);
             sleep(1);
             puts("Enviando confirmação...");
-            
+
             sendPacket(response);
-            
+
         }else if(id_destino == roteadores[0].id && packet.ack == 1){
             printf("Confirmação recebida de %s:%d, mensagem #seq:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), packet.seq);
             pthread_mutex_lock(&timerMutex);
             confirmacao = 1;
             pthread_mutex_unlock(&timerMutex);
         }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
-            puts("vetor recebido");
+            printf("Vetor distância de: %d -> ", packet.id_font);
+            printaVec(packet.myvec);
         }
-                
     }
- 
+
     return 0;
 }
