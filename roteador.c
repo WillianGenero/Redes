@@ -421,7 +421,12 @@ void updateTable(pacote packet)
         }
     }
     table[idx(meuid)] = myvec;
-    // falta copiar este carinha abaixo
-    table[idx(packet.id_font)] = packet.sendervec;    
+    
+    int *newvec = malloc(sizeof(int) * NODES);
+    for(int i=0; i < NODES; i++){
+        newvec[i] = packet.sendervec[i];
+    }
+    table[idx(packet.id_font)] = newvec;
+
     printaTable();
 }
