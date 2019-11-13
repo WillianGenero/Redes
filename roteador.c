@@ -87,7 +87,6 @@ int main(int argc, char *argv[ ])
 
     printaNodo();
     printaTable();
-    // printaVizinhos();
 
     loadConfs(vizinhos);
 
@@ -139,6 +138,10 @@ void printaTable(){
         }
         puts("");
     }
+    printf("\nsaida: ");
+    for(int i = 0; i < NODES; i++){
+        printf("[%d]", saida[i]);
+    }
     puts("");
 }
 
@@ -184,7 +187,6 @@ void loadLinks(int myid){
     myvec = malloc(sizeof(int) * qt_nodos);
 
     memset(myvec, -1, sizeof(int) * qt_nodos);
-    memset(saida, -1, sizeof(int) * NODES);
 
     myvec[idx(myid)] = 0;
 
@@ -205,7 +207,7 @@ void loadLinks(int myid){
             }
         }
     }
-    fclose(file);
+    fclose(file);    
 
     memset(table, -1, sizeof(int*) * qt_nodos);
     table[idx(myid)] = myvec;
@@ -217,6 +219,12 @@ void loadConfs(int vizinhos[])
     char ip_rot[32];
     FILE *file;
     roteadores = malloc(sizeof(struct roteador) * n_viz);
+    
+    memset(saida, -1, sizeof(int) * NODES); 
+
+    for(int i=1; i<n_viz; i++){
+        saida[idx(vizinhos[i])] = vizinhos[i];
+    }
 
     for(int i=0; i<n_viz; i++){
         file = fopen("configs/roteador.config", "r");
@@ -419,7 +427,7 @@ void updateTable(pacote packet)
         if(( novocusto < myvec[i]) || myvec[i] == -1){
             mudou = 1;
             myvec[i] = novocusto;
-            saida[i] = idx(packet.id_font);
+            saida[i] = packet.id_font;
         }
     }
     table[idx(meuid)] = myvec;
