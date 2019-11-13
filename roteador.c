@@ -282,7 +282,7 @@ void sendPacket(pacote packet)
 {
     int id_next, i, slen=sizeof(si_other);
 
-    id_next = packet.id_dest;
+    id_next = saida[idx(packet.id_dest)];
 
     for(i=1; i<n_viz; i++){
         if (roteadores[i].id == id_next)
@@ -352,7 +352,8 @@ void *terminal()
                 sendPacket(packet);
             }
         }
-        pthread_mutex_unlock(&timerMutex);table[idx(meuid)] = myvec;
+        pthread_mutex_unlock(&timerMutex);
+        table[idx(*meuid)] = myvec;
     }
 
     return 0;
@@ -366,7 +367,6 @@ void *router(void *porta)
 
     while(1)
     {
-        //try to receive some data, this is a blocking call
         if ((recv_len = recvfrom(sock, &packet, sizeof(struct pacote), 0, (struct sockaddr *) &si_other, &slen)) == -1)
         {
             die("recvfrom()");
@@ -376,7 +376,7 @@ void *router(void *porta)
 
         sleep(1);
         if (id_destino != roteadores[0].id){
-            // int id_next = caminho[roteadores[0].id][id_destino];
+            int id_next = saida[idx(id_destino)];
 
             if(packet.type == DATA){
                 printf("Roteador %d encaminhando mensagem com # sequência %d para o destino %d\n", roteadores[0].id, packet.seq, packet.id_dest);
@@ -430,7 +430,7 @@ void updateTable(pacote packet)
             saida[i] = packet.id_font;
         }
     }
-    table[idx(meuid)] = myvec;
+    table[idx(*meuid)] = myvec;
 
     int *newvec = malloc(sizeof(int) * NODES);
     for(int i=0; i < NODES; i++){

@@ -6,6 +6,7 @@ gnome-terminal --geometry=40x25 -- ./roteador 10
 gnome-terminal --geometry=40x25 -- ./roteador 6
 gnome-terminal --geometry=40x25 -- ./roteador 18
 gnome-terminal --geometry=40x25 -- ./roteador 1
+rm -rf roteador
 # for i in $(seq 0 5);
 #  do
 #  gnome-terminal --geometry=50x25 -- ./roteador $i
