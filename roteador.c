@@ -408,6 +408,7 @@ void *router(void *porta)
 void updateTable(pacote packet)
 {
     int custo_font = myvec[idx(packet.id_font)];
+    int mudou = 0;
     
     for(int i=0; i<NODES; i++){
         if(packet.sendervec[i] == -1)
@@ -416,17 +417,22 @@ void updateTable(pacote packet)
         int novocusto = (packet.sendervec[i] + custo_font);
 
         if(( novocusto < myvec[i]) || myvec[i] == -1){
-           myvec[i] = novocusto;
-           saida[i] = idx(packet.id_font);
+            mudou = 1;
+            myvec[i] = novocusto;
+            saida[i] = idx(packet.id_font);
         }
     }
     table[idx(meuid)] = myvec;
-    
+
     int *newvec = malloc(sizeof(int) * NODES);
     for(int i=0; i < NODES; i++){
         newvec[i] = packet.sendervec[i];
     }
     table[idx(packet.id_font)] = newvec;
+
+    if(mudou == 1){
+        sendMyVec();
+    }
 
     printaTable();
 }
