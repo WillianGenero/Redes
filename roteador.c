@@ -18,7 +18,7 @@ void mapeia();
 void loadLinks();
 void loadConfs(int vizinhos[]);
 void socketConfig();
-void sendMyVec();
+void *sendMyVec();
 void sendPacket(pacote packet);
 void updateTable(pacote packet);
 void *terminal();
@@ -93,18 +93,18 @@ int main(int argc, char *argv[ ])
     printRoteadores();
 
 
-    pthread_t tids[2];
+    pthread_t tids[3];
 
     socketConfig();
 
     sleep(2);
 
-    sendMyVec();
-
-    pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
-    pthread_create(&tids[1], NULL, terminal, NULL);
+    pthread_create(&tids[0], NULL, sendMyVec, NULL);
+    pthread_create(&tids[1], NULL, router, (void *) &roteadores[0].porta);
+    pthread_create(&tids[2], NULL, terminal, NULL);
     pthread_join(tids[0], NULL);
     pthread_join(tids[1], NULL);
+    pthread_join(tids[2], NULL);
 
     close(sock);
     return(1);
@@ -207,7 +207,7 @@ void loadLinks(int myid){
             }
         }
     }
-    fclose(file);    
+    fclose(file);
 
     memset(table, -1, sizeof(int*) * qt_nodos);
     table[idx(myid)] = myvec;
@@ -219,8 +219,8 @@ void loadConfs(int vizinhos[])
     char ip_rot[32];
     FILE *file;
     roteadores = malloc(sizeof(struct roteador) * n_viz);
-    
-    memset(saida, -1, sizeof(int) * NODES); 
+
+    memset(saida, -1, sizeof(int) * NODES);
 
     for(int i=1; i<n_viz; i++){
         saida[idx(vizinhos[i])] = vizinhos[i];
@@ -261,21 +261,22 @@ void socketConfig()
     }
 }
 
-void sendMyVec()
+void *sendMyVec()
 {
     pacote vec_packet;
-    
-        vec_packet.id_font = *meuid;
+
+    vec_packet.id_font = *meuid;
     vec_packet.type = CONTROL;
-    vec_packet.ack = 0;    
-    
-        for (int i=0 ; i<qt_nodos ; i++)
-            vec_packet.sendervec[i] = myvec[i];
+    vec_packet.ack = 0;
+
+    for (int i=0 ; i<qt_nodos ; i++)
+        vec_packet.sendervec[i] = myvec[i];
 
     for (int i = 1; i < n_viz; i++){
         vec_packet.id_dest = vizinhos[i];
         sendPacket(vec_packet);
     }
+    return 0;
 }
 
 void sendPacket(pacote packet)
@@ -417,7 +418,7 @@ void updateTable(pacote packet)
 {
     int custo_font = myvec[idx(packet.id_font)];
     int mudou = 0;
-    
+
     for(int i=0; i<NODES; i++){
         if(packet.sendervec[i] == -1)
             continue;
