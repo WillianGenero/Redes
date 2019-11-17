@@ -29,7 +29,7 @@ struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 int sock, seq = 0, confirmacao = 0, tentativa = 0;
-
+int unlinkRouter[NODES];
 int nodos[NODES], saida[NODES], qt_nodos = 0, *myvec;
 int *table[NODES];
 
@@ -283,6 +283,7 @@ void sendMyVec()
 
     for (int i = 1; i < n_viz; i++){
         vec_packet.id_dest = vizinhos[i];
+        unlinkRouter[idx(vec_packet.id_dest)] += 1;
         sendPacket(vec_packet);
     }
 }
@@ -417,6 +418,9 @@ void *router(void *porta)
         }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
             printf("Vetor distância de: %d -> ", packet.id_font);
             printaVec(packet.sendervec);
+            unlinkRouter[idx(packet.id_font)] = 0;
+            puts("Link Vizinhos");
+            printaVec(unlinkRouter);
             updateTable(packet);
         }
     }
