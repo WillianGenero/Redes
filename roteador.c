@@ -18,7 +18,8 @@ void mapeia();
 void loadLinks();
 void loadConfs(int vizinhos[]);
 void socketConfig();
-void *sendMyVec();
+void *controlVec();
+void sendMyVec();
 void sendPacket(pacote packet);
 void updateTable(pacote packet);
 void *terminal();
@@ -99,9 +100,9 @@ int main(int argc, char *argv[ ])
 
     sleep(2);
 
-    pthread_create(&tids[0], NULL, sendMyVec, NULL);
-    pthread_create(&tids[1], NULL, router, (void *) &roteadores[0].porta);
-    pthread_create(&tids[2], NULL, terminal, NULL);
+    pthread_create(&tids[0], NULL, router, (void *) &roteadores[0].porta);
+    pthread_create(&tids[1], NULL, terminal, NULL);
+    pthread_create(&tids[2], NULL, controlVec, NULL);
     pthread_join(tids[0], NULL);
     pthread_join(tids[1], NULL);
     pthread_join(tids[2], NULL);
@@ -261,14 +262,22 @@ void socketConfig()
     }
 }
 
-void *sendMyVec()
+void *controlVec(){
+    do{
+        puts("Sending vector");
+        sendMyVec();
+        sleep(30);
+    } while(1);
+    return 0;
+}
+
+void sendMyVec()
 {
     pacote vec_packet;
 
     vec_packet.id_font = *meuid;
     vec_packet.type = CONTROL;
     vec_packet.ack = 0;
-
     for (int i=0 ; i<qt_nodos ; i++)
         vec_packet.sendervec[i] = myvec[i];
 
@@ -276,7 +285,6 @@ void *sendMyVec()
         vec_packet.id_dest = vizinhos[i];
         sendPacket(vec_packet);
     }
-    return 0;
 }
 
 void sendPacket(pacote packet)
