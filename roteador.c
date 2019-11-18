@@ -21,12 +21,13 @@ void socketConfig();
 void *controlVec();
 void sendMyVec();
 void sendPacket(pacote packet);
-void updateTable(pacote packet);
+void updateTable(int *sendervec, int id_font);
 void *terminal();
 void *router(void *porta);
 
 struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
+int *meuid;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 int sock, seq = 0, confirmacao = 0, tentativa = 0;
 int unlinkRouter[NODES];
@@ -39,6 +40,16 @@ void die(char *s)
 {
     perror(s);
     exit(1);
+}
+
+int *copyvec(int vetor[], int tamanho) {
+    int *copy = malloc(sizeof(int) * tamanho);
+    
+    for(int i=0; i<tamanho; i++){
+        copy[i] = vetor[i];
+    }
+
+    return copy;
 }
 
 /* retorna o indice do roteador no vetor */
@@ -67,9 +78,6 @@ void adicionaVizinho(int id) {
     n_viz++;
     return;
 }
-
-int *meuid;
-
 
 int main(int argc, char *argv[ ])
 {
@@ -421,35 +429,34 @@ void *router(void *porta)
             unlinkRouter[idx(packet.id_font)] = 0;
             puts("Link Vizinhos");
             printaVec(unlinkRouter);
-            updateTable(packet);
+            updateTable(copyvec(&packet.sendervec, NODES), packet.id_font);
         }
     }
     return 0;
 }
-void updateTable(pacote packet)
+
+void updateTable(int *sendervec, int id_font)
 {
-    int custo_font = myvec[idx(packet.id_font)];
+    int custo_font = myvec[idx(id_font)];
     int mudou = 0;
 
     for(int i=0; i<NODES; i++){
-        if(packet.sendervec[i] == -1)
+        if(sendervec[i] == -1)
             continue;
 
-        int novocusto = (packet.sendervec[i] + custo_font);
+        int novocusto = (sendervec[i] + custo_font);
 
         if(( novocusto < myvec[i]) || myvec[i] == -1){
             mudou = 1;
             myvec[i] = novocusto;
-            saida[i] = packet.id_font;
+            saida[i] = id_font;
         }
     }
     table[idx(*meuid)] = myvec;
 
-    int *newvec = malloc(sizeof(int) * NODES);
-    for(int i=0; i < NODES; i++){
-        newvec[i] = packet.sendervec[i];
-    }
-    table[idx(packet.id_font)] = newvec;
+    int *newvec = copyvec(sendervec, NODES);
+
+    table[idx(id_font)] = newvec;
 
     if(mudou == 1){
         sendMyVec();
