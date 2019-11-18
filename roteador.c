@@ -272,9 +272,10 @@ void socketConfig()
 
 void *controlVec(){
     do{
+        verificaEnlaces();
         puts("Sending vector");
         sendMyVec();
-        sleep(30);
+        sleep(15);
     } while(1);
     return 0;
 }
@@ -409,7 +410,7 @@ void *router(void *porta)
             response.ack = 1;
             response.id_font = id_destino;
             response.id_dest = packet.id_font;
-            response.seq = packet.seq; // ou ++seq ?
+            response.seq = packet.seq;
 
             printf("Pacote recebido de %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
             printf("Mensagem: %s\n", packet.message);
@@ -463,4 +464,29 @@ void updateTable(int *sendervec, int id_font)
     }
 
     printaTable();
+}
+
+void verificaEnlaces()
+{
+    int mudou = 0;
+    for(int i = 0; i < NODES; i++){
+        if(unlinkRouter[i] > 2){
+            table[i] = myvec[i] = saida[i] = -1;
+            mudou = 1;
+        }
+    }
+    if(mudou){
+        puts("recalculando tudo");
+        recalculaTudo();
+    }
+}
+
+void recalculaTudo()
+{
+    for(int i = 0; i < NODES; i++){
+        if(table[i] == -1)
+            continue;
+
+        updateTable(table[i], nodos[i]);
+    }
 }
