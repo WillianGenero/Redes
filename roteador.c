@@ -31,7 +31,8 @@ int *meuid;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
 int sock, seq = 0, confirmacao = 0, tentativa = 0;
 int unlinkRouter[NODES];
-int nodos[NODES], saida[NODES], qt_nodos = 0, *myvec;
+int nodos[NODES], qt_nodos = 0;
+int *myvec, *myvec_original, *saida, *saida_original;
 int *table[NODES];
 
 int vizinhos[NODES], n_viz = 1;
@@ -62,7 +63,7 @@ int idx(int id){
 
 void printRoteadores(){
     puts("---------------------------------");
-    printf("| id:%d %s:%d\n| Vizinhos:\n", roteadores[0].id, roteadores[0].ip, roteadores[0].porta);
+     printf("| id:%d %s:%d\n| Vizinhos:\n", roteadores[0].id, roteadores[0].ip, roteadores[0].porta);
     for(int i=1; i<n_viz; i++)
         printf("| id:%d | %s:%d\n", roteadores[i].id, roteadores[i].ip, roteadores[i].porta);
     puts("---------------------------------");
@@ -91,6 +92,7 @@ int main(int argc, char *argv[ ])
         printf("Olá, sou o roteador %d:\n", *meuid);
     }
 
+    saida = malloc(sizeof(int) * NODES);
     mapeia();
     loadLinks(*meuid);
 
@@ -235,6 +237,9 @@ void loadConfs(int vizinhos[])
         saida[idx(vizinhos[i])] = vizinhos[i];
     }
 
+    saida_original = copyvec(saida, NODES);
+    myvec_original = copyvec(myvec, NODES);
+
     for(int i=0; i<n_viz; i++){
         file = fopen("configs/roteador.config", "r");
         if (!file)
@@ -275,7 +280,7 @@ void *controlVec(){
         verificaEnlaces();
         puts("Sending vector");
         sendMyVec();
-        sleep(15);
+        sleep(5);
     } while(1);
     return 0;
 }
@@ -470,14 +475,21 @@ void verificaEnlaces()
 {
     int mudou = 0;
     for(int i = 0; i < NODES; i++){
-        if(unlinkRouter[i] > 2){
-            table[i] = myvec[i] = saida[i] = -1;
+        if(unlinkRouter[i] > 1){
+            table[i] = -1;
+            int *nvec = copyvec(myvec_original, NODES);
+            nvec[i] = -1;
+            saida = copyvec(saida_original, NODES);
+            saida[i] = -1;
+            table[idx(*meuid)] = nvec;
             mudou = 1;
+            puts("eoq");
         }
     }
     if(mudou){
         puts("recalculando tudo");
         recalculaTudo();
+            printaVec(nvec);
     }
 }
 
