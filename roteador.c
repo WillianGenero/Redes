@@ -29,6 +29,7 @@ struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
 int *meuid;
 pthread_mutex_t timerMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t tableMutex = PTHREAD_MUTEX_INITIALIZER;
 int sock, seq = 0, confirmacao = 0, tentativa = 0;
 int unlinkRouter[NODES];
 int nodos[NODES], qt_nodos = 0;
@@ -277,7 +278,9 @@ void socketConfig()
 
 void *controlVec(){
     do{
+        pthread_mutex_lock(&tableMutex);
         verificaEnlaces();
+        pthread_mutex_unlock(&tableMutex);
         puts("Sending vector");
         sendMyVec();
         sleep(5);
@@ -304,6 +307,7 @@ void sendMyVec()
 
 void sendPacket(pacote packet)
 {
+    pthread_mutex_lock(&tableMutex);
     int id_next, i, slen=sizeof(si_other);
 
     id_next = saida[idx(packet.id_dest)];
@@ -329,6 +333,7 @@ void sendPacket(pacote packet)
     {
         die("sendto()");
     }
+    pthread_mutex_unlock(&tableMutex);
 }
 
 void *terminal()
@@ -483,13 +488,17 @@ void verificaEnlaces()
             saida[i] = -1;
             table[idx(*meuid)] = nvec;
             mudou = 1;
-            puts("eoq");
+            
+            for(int j=1; j<n_viz; j++){
+                if(vizinhos[j] == nodos[idx(i)] && j < n_viz){
+                    vizinhos[j] = vizinhos[n_viz-1];
+                }
+            }
         }
     }
     if(mudou){
         puts("recalculando tudo");
         recalculaTudo();
-            printaVec(nvec);
     }
 }
 
