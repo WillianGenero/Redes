@@ -278,9 +278,11 @@ void socketConfig()
 void *controlVec(){
     do{
         pthread_mutex_lock(&tableMutex);
+//        puts("Unlink");
+//        printaVec(unlinkRouter);
         verificaEnlaces();
         pthread_mutex_unlock(&tableMutex);
-        puts("Sending vector");
+//        puts("Sending vector");
         sendMyVec();
         sleep(5);
     } while(1);
@@ -296,8 +298,8 @@ void sendMyVec()
     for (int i=0 ; i<qt_nodos ; i++)
         vec_packet.sendervec[i] = myvec[i];
 
-    puts("Vizinhos: ");
-    printaVec(vizinhos);
+//    puts("Vizinhos: ");
+//    printaVec(vizinhos);
     for (int i = 1; i < n_viz; i++){
         printf("Sending vec to %d\n", vizinhos[i]);
         vec_packet.id_dest = vizinhos[i];
@@ -452,6 +454,10 @@ void updateTable(int *sendervec, int id_font)
     int custo_font = myvec[idx(id_font)];
     int mudou = 0;
 
+    puts("MyVec");
+    printaVec(myvec);
+
+
     for(int i=0; i<NODES; i++){
         if(sendervec[i] == -1)
             continue;
@@ -482,22 +488,31 @@ void verificaEnlaces()
     int mudou = 0;
     for(int i = 0; i < NODES; i++){
         if(unlinkRouter[i] > 1){
+//            printf("Link Down: %d\n", nodos[i]);
             table[i] = -1;
-            int *nvec = copyvec(myvec_original, NODES);
-            nvec[i] = -1;
-            saida = copyvec(saida_original, NODES);
+            myvec_original[i] = -1;
             saida[i] = -1;
-            table[idx(*meuid)] = nvec;
+            table[idx(*meuid)] = myvec_original;
             mudou = 1;
 
             for(int j=1; j<n_viz; j++){
-                if(vizinhos[j] == nodos[i] && j < n_viz-1)
-                    vizinhos[j] = vizinhos[n_viz-1];
-
-                else if(vizinhos[j] == nodos[i])
-                    vizinhos[j] = 0;
+//                printf("Trocando: %d por %d\n", vizinhos[j], nodos[i]);
+                if(vizinhos[j] == nodos[i]){
+                    if(j < n_viz-1){
+                        vizinhos[j] = vizinhos[n_viz-1];
+                    }
+                    else{
+                        vizinhos[j] = 0;
+                    }
+                    vizinhos[n_viz-1] = 0;
+                    n_viz--;
+                    unlinkRouter[i] = 0;
+                }
             }
-            n_viz--;
+//            puts("\n\nNeigh After: ");
+//            printaVec(vizinhos);
+//            printf("NUM VI: %d\n", n_viz);
+            printaTable();
         }
     }
     if(mudou)
