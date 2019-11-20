@@ -20,7 +20,7 @@ void loadConfs(int vizinhos[]);
 void socketConfig();
 void *controlVec();
 void sendMyVec();
-void sendPacket(pacote packet);
+void sendPacket(pacote packet, int strategy);
 void updateTable(int *sendervec, int id_font);
 void *terminal();
 void *router(void *porta);
@@ -304,17 +304,21 @@ void sendMyVec()
         printf("Sending vec to %d\n", vizinhos[i]);
         vec_packet.id_dest = vizinhos[i];
         unlinkRouter[idx(vec_packet.id_dest)] += 1;
-        sendPacket(vec_packet);
+        sendPacket(vec_packet, FOWARD);
     }
 }
 
-void sendPacket(pacote packet)
+void sendPacket(pacote packet, int strategy)
 {
     pthread_mutex_lock(&tableMutex);
     int id_next, i, slen=sizeof(si_other);
 
-    id_next = saida[idx(packet.id_dest)];
-
+    if(strategy == ROUTE){
+        id_next = saida[idx(packet.id_dest)];
+    } else if(strategy == FOWARD){
+        id_next = packet.id_dest;
+    }
+    
     for(i=1; i<n_viz; i++){
         if (roteadores[i].id == id_next)
             break;
@@ -364,7 +368,7 @@ void *terminal()
         packet.ack = 0;
         packet.id_font = roteadores[0].id;
 
-        sendPacket(packet);
+        sendPacket(packet, ROUTE);
         pthread_mutex_lock(&timerMutex);
         tentativa = 0, confirmacao = 0;
         pthread_mutex_unlock(&timerMutex);
@@ -381,7 +385,7 @@ void *terminal()
                 printf("Pacote %d não entregue. Tentando novamente", packet.seq);
                 tentativa += 1;
                 pthread_mutex_unlock(&timerMutex);
-                sendPacket(packet);
+                sendPacket(packet, ROUTE);
             }
         }
         pthread_mutex_unlock(&timerMutex);
@@ -415,7 +419,7 @@ void *router(void *porta)
             }else if (packet.type == CONTROL && packet.ack == 1){
                 printf("Roteador %d encaminhando confirmação de msg #seq:%d para o sender %d\n", roteadores[0].id, packet.seq, packet.id_dest);
             }
-            sendPacket(packet);
+            sendPacket(packet, ROUTE);
 
         }else if(id_destino == roteadores[0].id && packet.type == DATA){
             pacote response;
@@ -430,7 +434,7 @@ void *router(void *porta)
             sleep(1);
             puts("Enviando confirmação...");
 
-            sendPacket(response);
+            sendPacket(response, ROUTE);
 
         }else if(id_destino == roteadores[0].id && packet.ack == 1){
             printf("Confirmação recebida de %s:%d, mensagem #seq:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), packet.seq);
