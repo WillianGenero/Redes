@@ -46,7 +46,7 @@ void die(char *s)
 
 int *copyvec(int vetor[], int tamanho) {
     int *copy = malloc(sizeof(int) * tamanho);
-    
+
     for(int i=0; i<tamanho; i++){
         copy[i] = vetor[i];
     }
@@ -103,7 +103,6 @@ int main(int argc, char *argv[ ])
     loadConfs(vizinhos);
 
     printRoteadores();
-
 
     pthread_t tids[3];
 
@@ -291,14 +290,16 @@ void *controlVec(){
 void sendMyVec()
 {
     pacote vec_packet;
-
     vec_packet.id_font = *meuid;
     vec_packet.type = CONTROL;
     vec_packet.ack = 0;
     for (int i=0 ; i<qt_nodos ; i++)
         vec_packet.sendervec[i] = myvec[i];
 
+    puts("Vizinhos: ");
+    printaVec(vizinhos);
     for (int i = 1; i < n_viz; i++){
+        printf("Sending vec to %d\n", vizinhos[i]);
         vec_packet.id_dest = vizinhos[i];
         unlinkRouter[idx(vec_packet.id_dest)] += 1;
         sendPacket(vec_packet);
@@ -488,18 +489,19 @@ void verificaEnlaces()
             saida[i] = -1;
             table[idx(*meuid)] = nvec;
             mudou = 1;
-            
+
             for(int j=1; j<n_viz; j++){
-                if(vizinhos[j] == nodos[idx(i)] && j < n_viz){
+                if(vizinhos[j] == nodos[i] && j < n_viz-1)
                     vizinhos[j] = vizinhos[n_viz-1];
-                }
+
+                else if(vizinhos[j] == nodos[i])
+                    vizinhos[j] = 0;
             }
+            n_viz--;
         }
     }
-    if(mudou){
-        puts("recalculando tudo");
+    if(mudou)
         recalculaTudo();
-    }
 }
 
 void recalculaTudo()
