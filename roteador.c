@@ -487,6 +487,43 @@ void updateTable(int *sendervec, int id_font)
     printaTable();
 }
 
+void updateFullTable(){
+    puts("UPDATEFULLTABLE");
+    int *lastvec, mudou = 0;
+    for(int i=0 ; i<qt_nodos ; i++){
+        lastvec[i] = myvec[i];
+        myvec[i] = -1;
+    }
+    puts("Tabela Antes");
+    printaTable();
+    puts("MYVEC");
+    printaVec(myvec);
+    puts("LastVec");
+    printaVec(lastvec);
+    for(int i=0 ; i<qt_nodos ; i++){
+        for(int j=0 ; j<qt_nodos ; j++){
+            if(i == idx(*meuid) || table[i] == -1)
+                continue;
+            int novocusto = table[i][j] + lastvec[i];
+            if(novocusto < myvec[i] || myvec[i] == -1){
+                printf("Trocando %d por %d em posição [%d][%d] --- Vetor: %d\n", myvec[i], novocusto, i, j, nodos[i]);
+                myvec[i] = novocusto;
+                saida[i] = nodos[i];
+                mudou = 1;
+            }
+        }
+    }
+    table[idx(*meuid)] = myvec;
+    puts("Tabela atualizada");
+    printaTable();
+    printf("\nSaida: ");
+    for(int i = 0; i < NODES; i++){
+        printf("[%d]", saida[i]);
+    }
+    if(mudou == 1)
+        sendMyVec(); 
+}
+
 void verificaEnlaces()
 {
     int mudou = 0;
@@ -529,6 +566,6 @@ void recalculaTudo()
         if(table[i] == -1)
             continue;
 
-        updateTable(table[i], nodos[i]);
+        updateFullTable();
     }
 }
