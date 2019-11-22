@@ -505,14 +505,17 @@ void updateFullTable(){
             if(i == idx(*meuid) || table[i] == -1)
                 continue;
             int novocusto = table[i][j] + lastvec[i];
-            if(novocusto < myvec[i] || myvec[i] == -1){
+            if(novocusto < myvec[j] || myvec[j] == -1){
                 printf("Trocando %d por %d em posição [%d][%d] --- Vetor: %d\n", myvec[i], novocusto, i, j, nodos[i]);
-                myvec[i] = novocusto;
-                saida[i] = nodos[i];
+                myvec[j] = novocusto;
+                saida[j] = nodos[i];
                 mudou = 1;
+                printaVec(myvec);
             }
         }
     }
+    myvec[idx(*meuid)] = 0;
+    saida[idx(*meuid)] = -1;
     table[idx(*meuid)] = myvec;
     puts("Tabela atualizada");
     printaTable();
