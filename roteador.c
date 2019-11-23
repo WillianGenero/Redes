@@ -546,10 +546,6 @@ void verificaEnlaces()
                     if(j < n_viz-1){
                         vizinhos[j] = vizinhos[n_viz-1];
                     }
-                    else{
-                        vizinhos[j] = 0;
-                    }
-                    vizinhos[n_viz-1] = 0;
                     n_viz--;
                     unlinkRouter[i] = 0;
                 }
