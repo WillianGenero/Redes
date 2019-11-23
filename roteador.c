@@ -490,6 +490,7 @@ void updateTable(int *sendervec, int id_font)
 void updateFullTable(){
     puts("UPDATEFULLTABLE");
     int *lastvec, mudou = 0;
+    lastvec = malloc(sizeof(int) * qt_nodos);
     for(int i=0 ; i<qt_nodos ; i++){
         lastvec[i] = myvec[i];
         myvec[i] = -1;
@@ -501,9 +502,9 @@ void updateFullTable(){
     puts("LastVec");
     printaVec(lastvec);
     for(int i=0 ; i<qt_nodos ; i++){
+        if(i == idx(*meuid) || table[i] == -1)
+            continue;
         for(int j=0 ; j<qt_nodos ; j++){
-            if(i == idx(*meuid) || table[i] == -1)
-                continue;
             int novocusto = table[i][j] + lastvec[i];
             if(novocusto < myvec[j] || myvec[j] == -1){
                 printf("Trocando %d por %d em posição [%d][%d] --- Vetor: %d\n", myvec[i], novocusto, i, j, nodos[i]);
