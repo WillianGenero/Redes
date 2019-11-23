@@ -560,15 +560,5 @@ void verificaEnlaces()
         }
     }
     if(mudou)
-        recalculaTudo();
-}
-
-void recalculaTudo()
-{
-    for(int i = 0; i < NODES; i++){
-        if(table[i] == -1)
-            continue;
-
         updateFullTable();
-    }
 }
