@@ -415,7 +415,6 @@ void *router(void *porta)
 
         id_destino = packet.id_dest;
 
-        sleep(1);
         if (id_destino != roteadores[0].id){
             int id_next = saida[idx(id_destino)];
 
@@ -436,7 +435,6 @@ void *router(void *porta)
 
             printf("Pacote recebido de %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
             printf("Mensagem: %s\n", packet.message);
-            sleep(1);
             puts("Enviando confirmação...");
 
             sendPacket(response, ROUTE);
