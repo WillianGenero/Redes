@@ -318,6 +318,12 @@ void sendPacket(pacote packet, int strategy)
     } else if(strategy == FOWARD){
         id_next = packet.id_dest;
     }
+    pthread_mutex_unlock(&tableMutex);
+
+    if(id_next == -1){
+        puts("DESTINO INALCANÇÁVEL");
+        return;
+    }
     
     for(i=1; i<n_viz; i++){
         if (roteadores[i].id == id_next)
@@ -340,7 +346,6 @@ void sendPacket(pacote packet, int strategy)
     {
         die("sendto()");
     }
-    pthread_mutex_unlock(&tableMutex);
 }
 
 void *terminal()
