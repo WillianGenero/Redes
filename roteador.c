@@ -24,6 +24,7 @@ void sendPacket(pacote packet, int strategy);
 void updateTable(int *sendervec, int id_font);
 void *terminal();
 void *router(void *porta);
+void verificaEnlaces();
 
 struct roteador *roteadores;
 struct sockaddr_in si_me, si_other;
