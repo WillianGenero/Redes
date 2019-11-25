@@ -447,7 +447,7 @@ void *router(void *porta)
             unlinkRouter[idx(packet.id_font)] = 0;
             puts("Link Vizinhos");
             printaVec(unlinkRouter);
-            updateTable(copyvec(&packet.sendervec, NODES), packet.id_font);
+            updateTable(copyvec(packet.sendervec, NODES), packet.id_font);
         }
     }
     return 0;
@@ -505,6 +505,9 @@ void updateFullTable(){
         if(i == idx(*meuid) || table[i] == -1)
             continue;
         for(int j=0 ; j<qt_nodos ; j++){
+            if(table[i][j] == -1)
+                continue;
+            
             int novocusto = table[i][j] + lastvec[i];
             if(novocusto < myvec[j] || myvec[j] == -1){
                 printf("Trocando %d por %d em posição [%d][%d] --- Vetor: %d\n", myvec[i], novocusto, i, j, nodos[i]);
@@ -537,7 +540,8 @@ void verificaEnlaces()
             table[i] = -1;
             myvec_original[i] = -1;
             saida[i] = -1;
-            table[idx(*meuid)] = myvec_original;
+            int *mynewvec = copyvec(myvec_original, NODES);
+            table[idx(*meuid)] = mynewvec;
             mudou = 1;
 
             for(int j=1; j<n_viz; j++){
