@@ -455,7 +455,7 @@ void *router(void *porta)
             puts("Link Vizinhos");
             printaVec(unlinkRouter);
 //            updateTable(copyvec(packet.sendervec, NODES), packet.id_font);
-            table[idx(packet.id_font)] = packet.sendervec;
+            table[idx(packet.id_font)] = copyvec(packet.sendervec, NODES);
             updateFullTable();
         }
     }
