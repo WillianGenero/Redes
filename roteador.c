@@ -21,7 +21,6 @@ void socketConfig();
 void *controlVec();
 void sendMyVec();
 void sendPacket(pacote packet, int strategy);
-void updateTable(int *sendervec, int id_font);
 void *terminal();
 void *router(void *porta);
 void verificaEnlaces();
@@ -140,7 +139,7 @@ void printaVec(int *vec){
 }
 
 void printaTable(){
-    puts("\n Tabela:");
+    puts("\n--Tabela de Roteamento--");
     for(int i = 0; i < NODES; i++){
         if(table[i] == -1){
             puts("N/A");
@@ -279,10 +278,7 @@ void socketConfig()
 
 void *controlVec(){
     do{
-//        puts("Unlink");
-//        printaVec(unlinkRouter);
         verificaEnlaces();
-//        puts("Sending vector");
         sendMyVec();
         sleep(10);
     } while(1);
@@ -299,10 +295,6 @@ void sendMyVec()
     for (int i=0 ; i<qt_nodos ; i++)
         vec_packet.sendervec[i] = myvec[i];
 
-//    puts("Vizinhos: ");
-//    printaVec(vizinhos);
-    puts("--Vetor Original--");
-    printaVec(myvec_original);
     for (int i = 1; i < n_viz; i++){
         printf("Sending vec to %d\n", vizinhos[i]);
         vec_packet.id_dest = vizinhos[i];
@@ -449,50 +441,12 @@ void *router(void *porta)
             confirmacao = 1;
             pthread_mutex_unlock(&timerMutex);
         }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
-            printf("Vetor distância de: %d -> ", packet.id_font);
-            printaVec(packet.sendervec);
             unlinkRouter[idx(packet.id_font)] = 0;
-            puts("Link Vizinhos");
-            printaVec(unlinkRouter);
-//            updateTable(copyvec(packet.sendervec, NODES), packet.id_font);
             table[idx(packet.id_font)] = copyvec(packet.sendervec, NODES);
             updateFullTable();
         }
     }
     return 0;
-}
-
-void updateTable(int *sendervec, int id_font)
-{
-    int custo_font = myvec[idx(id_font)];
-    int mudou = 0;
-
-    puts("MyVec");
-    printaVec(myvec);
-
-    for(int i=0; i<NODES; i++){
-        if(sendervec[i] == -1)
-            continue;
-
-        int novocusto = (sendervec[i] + custo_font);
-
-        if(( novocusto < myvec[i]) || myvec[i] == -1){
-            mudou = 1;
-            myvec[i] = novocusto;
-            saida[i] = id_font;
-        }
-    }
-    table[idx(*meuid)] = myvec;
-
-    int *newvec = copyvec(sendervec, NODES);
-
-    table[idx(id_font)] = newvec;
-
-    if(mudou == 1){
-        sendMyVec();
-    }
-
-    printaTable();
 }
 
 void verificaEnlaces()
@@ -501,14 +455,12 @@ void verificaEnlaces()
     int mudou = 0;
     for(int i = 0; i < NODES; i++){
         if(unlinkRouter[i] > 1){
-//            printf("Link Down: %d\n", nodos[i]);
             table[i] = myvec_original[i] = saida[i] = -1;
             int *mynewvec = copyvec(myvec_original, NODES);
             table[idx(*meuid)] = mynewvec;
             mudou = 1;
 
             for(int j=1; j<n_viz; j++){
-//                printf("Trocando: %d por %d\n", vizinhos[j], nodos[i]);
                 if(vizinhos[j] == nodos[i]){
                     if(j < n_viz-1){
                         vizinhos[j] = vizinhos[n_viz-1];
@@ -518,9 +470,6 @@ void verificaEnlaces()
                 }
             }
             printaVizinhos();
-//            puts("\n\nNeigh After: ");
-//            printaVec(vizinhos);
-//            printf("NUM VI: %d\n", n_viz);
             printaTable();
         }
     }
@@ -533,18 +482,11 @@ void verificaEnlaces()
 void updateFullTable(){
     pthread_mutex_lock(&tableMutex);
 
-    puts("UPDATEFULLTABLE");
     int *lastvec;
     lastvec = malloc(sizeof(int) * qt_nodos);
     lastvec = copyvec(myvec, NODES);
     myvec = copyvec(myvec_original, NODES);
 
-    puts("Tabela Antes");
-    printaTable();
-    puts("MYVEC");
-    printaVec(myvec);
-    puts("LastVec");
-    printaVec(lastvec);
     for(int i=0 ; i<qt_nodos ; i++){
         if(i == idx(*meuid) || table[i] == -1)
             continue;
@@ -562,12 +504,8 @@ void updateFullTable(){
     myvec[idx(*meuid)] = 0;
     saida[idx(*meuid)] = -1;
     table[idx(*meuid)] = myvec;
-    puts("Tabela atualizada");
+
     printaTable();
-    printf("\nSaida: ");
-    for(int i = 0; i < NODES; i++){
-        printf("[%d]", saida[i]);
-    }
 
     pthread_mutex_unlock(&tableMutex);
     for(int i=0 ; i<NODES ; i++){
