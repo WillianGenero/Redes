@@ -287,7 +287,7 @@ void *controlVec(){
 
 void sendMyVec()
 {
-    sleep(3);
+//    sleep(3);
     pacote vec_packet;
     vec_packet.id_font = *meuid;
     vec_packet.type = CONTROL;
@@ -454,7 +454,7 @@ void verificaEnlaces()
     pthread_mutex_lock(&tableMutex);
     int mudou = 0;
     for(int i = 0; i < NODES; i++){
-        if(unlinkRouter[i] > 1){
+        if(unlinkRouter[i] > 3){
             table[i] = myvec_original[i] = saida[i] = -1;
             int *mynewvec = copyvec(myvec_original, NODES);
             table[idx(*meuid)] = mynewvec;
@@ -498,6 +498,10 @@ void updateFullTable(){
             if(novocusto < myvec[j] || myvec[j] == -1){
                 myvec[j] = novocusto;
                 saida[j] = nodos[i];
+                if(novocusto > 100){
+                    myvec[j] = -1;
+                    saida[j] = -1;
+                }
             }
         }
     }
