@@ -1,5 +1,5 @@
 #define BUFLEN 100
-#define NODES 4
+#define NODES 6
 
 // packet types
 #define DATA 0

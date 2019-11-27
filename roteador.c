@@ -280,14 +280,13 @@ void *controlVec(){
     do{
         verificaEnlaces();
         sendMyVec();
-        sleep(10);
+        sleep(30);
     } while(1);
     return 0;
 }
 
 void sendMyVec()
 {
-//    sleep(3);
     pacote vec_packet;
     vec_packet.id_font = *meuid;
     vec_packet.type = CONTROL;
@@ -296,7 +295,6 @@ void sendMyVec()
         vec_packet.sendervec[i] = myvec[i];
 
     for (int i = 1; i < n_viz; i++){
-        printf("Sending vec to %d\n", vizinhos[i]);
         vec_packet.id_dest = vizinhos[i];
         unlinkRouter[idx(vec_packet.id_dest)] += 1;
         sendPacket(vec_packet, FOWARD);
@@ -514,6 +512,7 @@ void updateFullTable(){
     pthread_mutex_unlock(&tableMutex);
     for(int i=0 ; i<NODES ; i++){
         if(lastvec[i] != myvec[i]){
+            sleep(2);
             sendMyVec();
             break;
         }
