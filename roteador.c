@@ -467,8 +467,6 @@ void verificaEnlaces()
                     unlinkRouter[i] = 0;
                 }
             }
-            printaVizinhos();
-            printaTable();
         }
     }
     pthread_mutex_unlock(&tableMutex);
@@ -497,6 +495,7 @@ void updateFullTable(){
                 myvec[j] = novocusto;
                 saida[j] = nodos[i];
                 if(novocusto > 100){
+                    printf("Detectado contagem ao infinito, enlace removido!\n");
                     myvec[j] = -1;
                     saida[j] = -1;
                 }
@@ -506,8 +505,6 @@ void updateFullTable(){
     myvec[idx(*meuid)] = 0;
     saida[idx(*meuid)] = -1;
     table[idx(*meuid)] = myvec;
-
-    printaTable();
 
     pthread_mutex_unlock(&tableMutex);
     for(int i=0 ; i<NODES ; i++){
