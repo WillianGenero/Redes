@@ -2,10 +2,8 @@
 
 gcc roteador.c -lpthread -o roteador
 
-gnome-terminal --geometry=25x25 -- ./roteador 2
-gnome-terminal --geometry=25x25 -- ./roteador 5
-gnome-terminal --geometry=25x25 -- ./roteador 8
-gnome-terminal --geometry=25x25 -- ./roteador 11
-gnome-terminal --geometry=25x25 -- ./roteador 14
-gnome-terminal --geometry=25x25 -- ./roteador 17
+gnome-terminal --geometry=40x25 -- ./roteador 10
+gnome-terminal --geometry=40x25 -- ./roteador 6
+gnome-terminal --geometry=40x25 -- ./roteador 18
+gnome-terminal --geometry=40x25 -- ./roteador 1
 rm -rf roteador

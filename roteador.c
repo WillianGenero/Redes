@@ -50,7 +50,7 @@ void now(){
     struct timeval tv;
     struct timezone tz;
     struct tm *tm;
-    
+
     gettimeofday(&tv, &tz);
     tm=localtime(&tv.tv_sec);
     printf("(%d:%02d:%02d:%d):\n", tm->tm_hour, tm->tm_min, tm->tm_sec, (int)tv.tv_usec);
