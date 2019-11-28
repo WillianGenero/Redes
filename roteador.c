@@ -3,6 +3,7 @@
 #include<stdlib.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
+#include<sys/time.h>
 #include<pthread.h>
 #include<unistd.h>
 #include <stdio_ext.h>
@@ -43,6 +44,16 @@ void die(char *s)
 {
     perror(s);
     exit(1);
+}
+
+void now(){
+    struct timeval tv;
+    struct timezone tz;
+    struct tm *tm;
+    
+    gettimeofday(&tv, &tz);
+    tm=localtime(&tv.tv_sec);
+    printf("(%d:%02d:%02d:%d):\n", tm->tm_hour, tm->tm_min, tm->tm_sec, (int)tv.tv_usec);
 }
 
 int *copyvec(int vetor[], int tamanho) {
@@ -408,6 +419,7 @@ void *router(void *porta)
         }
 
         id_destino = packet.id_dest;
+        sleep(1);
 
         if (id_destino != roteadores[0].id){
             int id_next = saida[idx(id_destino)];
@@ -509,6 +521,10 @@ void updateFullTable(){
     pthread_mutex_unlock(&tableMutex);
     for(int i=0 ; i<NODES ; i++){
         if(lastvec[i] != myvec[i]){
+            printf("\n\nTabela atualizada ");
+            now();
+            printaTable();
+
             sleep(2);
             sendMyVec();
             break;
