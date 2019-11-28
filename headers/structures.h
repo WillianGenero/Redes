@@ -1,9 +1,13 @@
 #define BUFLEN 100
-#define NODES 4
+#define NODES 6
 
 // packet types
 #define DATA 0
 #define CONTROL 1
+
+//send type
+#define ROUTE 0
+#define FOWARD 1
 
 typedef struct roteador
 {
