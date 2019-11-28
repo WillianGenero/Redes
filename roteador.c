@@ -502,7 +502,7 @@ void updateFullTable(){
             if(table[i][j] == -1)
                 continue;
 
-            int novocusto = table[i][j] + lastvec[i];
+            int novocusto = table[i][j] + myvec_original[i];
             if(novocusto < myvec[j] || myvec[j] == -1){
                 myvec[j] = novocusto;
                 saida[j] = nodos[i];
