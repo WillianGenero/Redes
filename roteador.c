@@ -292,7 +292,7 @@ void *controlVec(){
     do{
         verificaEnlaces();
         sendMyVec();
-        sleep(5);
+        sleep(30);
     } while(1);
     return 0;
 }
@@ -385,7 +385,7 @@ void *terminal()
         pthread_mutex_unlock(&timerMutex);
 
         while(1){
-            sleep(5);
+            sleep(10);
             pthread_mutex_lock(&timerMutex);
 
             if(tentativa >= 3 || confirmacao){
@@ -467,7 +467,6 @@ void verificaVolta(pacote packet){
             volta = 0;
     }
     if(volta){
-        printf("Voltou -> Id_font: %d\n", packet.id_font);
         myvec_original[idx(packet.id_font)] = enlaces[idx(packet.id_font)];
         saida[idx(packet.id_font)] = packet.id_font;
         n_viz++;
@@ -519,7 +518,6 @@ void updateFullTable(){
 
             int novocusto = table[i][j] + myvec_original[i];
             if(novocusto < myvec[j] || myvec[j] == -1){
-                printf("Trocando: %d -> %d | Saida: %d -> %d | I: %d |J: %d\n", myvec[j], novocusto, saida[j], nodos[i], i, j);
                 myvec[j] = novocusto;
                 saida[j] = nodos[i];
                 if(novocusto > 52){
@@ -533,7 +531,10 @@ void updateFullTable(){
     myvec[idx(*meuid)] = 0;
     saida[idx(*meuid)] = -1;
     table[idx(*meuid)] = myvec;
-    printaTable();
+    for(int j=0 ; j<NODES ; j++){
+        if(table[idx(*meuid)][j] == -1)
+            saida[j] = -1;
+    }
     pthread_mutex_unlock(&tableMutex);
     for(int i=0 ; i<NODES ; i++){
         if(lastvec[i] != myvec[i]){

@@ -42,6 +42,3 @@ Em um terminal qualquer digite o ID do roteador destino e após a mensagem de at
 - Após 3 tentativas sem recebimento de confirmação o transmissor irá desistir.
 - A cada 30 segundos cada roteador envia seu vetor distância aos vizinhos.
 - Se um roteador ficar 90 segundos sem encaminhar seu vetor distância ele é dado como offline e será removido da topologia.
-
-### Restrições
-Para simular a queda de um enlace e necessário finalizar o processo no terminal e após fazer isso ele não poderá voltar ao funcionamento novamente.
