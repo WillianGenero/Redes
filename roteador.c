@@ -35,7 +35,7 @@ pthread_mutex_t tableMutex = PTHREAD_MUTEX_INITIALIZER;
 int sock, seq = 0, confirmacao = 0, tentativa = 0;
 int unlinkRouter[NODES];
 int nodos[NODES], qt_nodos = 0;
-int *myvec, *myvec_original, *saida, *saida_original;
+int *myvec, *myvec_original, *enlaces, *saida, *saida_original;
 int *table[NODES];
 
 int vizinhos[NODES], n_viz = 1;
@@ -234,6 +234,7 @@ void loadLinks(int myid){
 
     memset(table, -1, sizeof(int*) * qt_nodos);
     table[idx(myid)] = myvec;
+    enlaces = copyvec(myvec, NODES);
 }
 
 void loadConfs(int vizinhos[])
@@ -384,7 +385,7 @@ void *terminal()
         pthread_mutex_unlock(&timerMutex);
 
         while(1){
-            sleep(5);
+            sleep(10);
             pthread_mutex_lock(&timerMutex);
 
             if(tentativa >= 3 || confirmacao){
@@ -420,7 +421,7 @@ void *router(void *porta)
 
         id_destino = packet.id_dest;
         sleep(1);
-
+       // printf("Pacote Chegado de %d -> Tipo: %s\n", packet.id_font, packet.type);
         if (id_destino != roteadores[0].id){
             int id_next = saida[idx(id_destino)];
 
@@ -451,6 +452,7 @@ void *router(void *porta)
             confirmacao = 1;
             pthread_mutex_unlock(&timerMutex);
         }else if (id_destino == roteadores[0].id && packet.type == CONTROL){
+            verificaVolta(packet);
             unlinkRouter[idx(packet.id_font)] = 0;
             table[idx(packet.id_font)] = copyvec(packet.sendervec, NODES);
             updateFullTable();
@@ -458,13 +460,25 @@ void *router(void *porta)
     }
     return 0;
 }
-
+void verificaVolta(pacote packet){
+    int volta = 1;
+    for(int i=0 ; i<n_viz ; i++){
+        if(vizinhos[i] == packet.id_font)
+            volta = 0;
+    }
+    if(volta){
+        myvec_original[idx(packet.id_font)] = enlaces[idx(packet.id_font)];
+        saida[idx(packet.id_font)] = packet.id_font;
+        n_viz++;
+        vizinhos[n_viz-1] = packet.id_font;
+    }
+}
 void verificaEnlaces()
 {
     pthread_mutex_lock(&tableMutex);
     int mudou = 0;
     for(int i = 0; i < NODES; i++){
-        if(unlinkRouter[i] > 3){
+        if(unlinkRouter[i] > 2){
             table[i] = myvec_original[i] = saida[i] = -1;
             int *mynewvec = copyvec(myvec_original, NODES);
             table[idx(*meuid)] = mynewvec;
@@ -506,7 +520,7 @@ void updateFullTable(){
             if(novocusto < myvec[j] || myvec[j] == -1){
                 myvec[j] = novocusto;
                 saida[j] = nodos[i];
-                if(novocusto > 100){
+                if(novocusto > 52){
                     printf("Detectado contagem ao infinito, enlace removido!\n");
                     myvec[j] = -1;
                     saida[j] = -1;
@@ -517,7 +531,10 @@ void updateFullTable(){
     myvec[idx(*meuid)] = 0;
     saida[idx(*meuid)] = -1;
     table[idx(*meuid)] = myvec;
-
+    for(int j=0 ; j<NODES ; j++){
+        if(table[idx(*meuid)][j] == -1)
+            saida[j] = -1;
+    }
     pthread_mutex_unlock(&tableMutex);
     for(int i=0 ; i<NODES ; i++){
         if(lastvec[i] != myvec[i]){
@@ -525,7 +542,6 @@ void updateFullTable(){
             now();
             printaTable();
 
-            sleep(2);
             sendMyVec();
             break;
         }
