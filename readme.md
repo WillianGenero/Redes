@@ -5,15 +5,15 @@ Vitor Antonio Apolinário e Willian Bordignon Genero
 
 **1. Clone o repositório em sua pasta de preferência**
 ```sh
-$ git clone https://github.com/WillianGenero/Redes.git
+$ git clone https://github.com/vitor-apolinario/computer-network-router.git
 ```
 
 **2. Abra a pasta**
 ```sh
-$ cd Redes
+$ cd computer-network-router
 ```
 
-**3. Executando o projeto**
+**3. Executando o projeto com os roteadores pré-definidos**
  ```sh
 $ bin/./init
 ```
@@ -31,14 +31,14 @@ Forneça os id's baseando-se nos roteadores configurados nos arquivos enlaces.co
 Em um terminal qualquer digite o ID do roteador destino e após a mensagem de até 100 dígitos que deseja enviar e confirme.
 
 ### Funcionamento
-- Para cada roteador inicializado será executado o algoritmo de Dijkstra que conhece a topologia completa da rede. Assim saberá o melhor caminho para cada outro roteador.
-- 2 threads são utilizadas:
+- Para cada roteador inicializado será cálculado o vetor distância e enviará para seus vizinhos. Cada roteador irá atualizar seu vetor distância com base nos vetores recebidos até encontrar o melhor caminho para todos os outros roteadores.
+- 3 threads são utilizadas:
 	-  Uma responsável por ficar recebendo as mensagens (bloqueada enquanto espera).
-	-  A outra responsável pelo prompt e posteriormente encaminhar a mensagem.
+	-  Uma responsável pelo prompt e posteriormente encaminhar a mensagem.
+	-  E a outra enviando periodicamente seu vetor distância aos vizinhos e verificando possíveis quedas de enlaces.
 - Para cada mensagem enviada que passa por um roteador intermediário, ele irá ver se é o receptor, se não for irá reencaminhar para o roteador seguinte até o destino, sem visualizar o conteúdo.
 - Quando um roteador recebe uma mensagem, será encaminhada uma mensagem de controle contendo a confirmação de recebimento.
 - Se após N segundos o transmissor não receber a confirmação um novo pacote será encaminhado.
 - Após 3 tentativas sem recebimento de confirmação o transmissor irá desistir.
-
-### Requisitos
-Para o funcionamento ideal é necessário que o arquivo de configuração enlace esteja com os IDs linearmente dispostos iniciando por 0.
+- A cada 30 segundos cada roteador envia seu vetor distância aos vizinhos.
+- Se um roteador ficar 90 segundos sem encaminhar seu vetor distância ele é dado como offline e será removido da topologia.
